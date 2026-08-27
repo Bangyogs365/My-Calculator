@@ -9,21 +9,24 @@ on:
       - main
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build Project
+      - name: Lint
+        run: npm run lint
+
+      - name: Build Next.js
         run: npm run build
