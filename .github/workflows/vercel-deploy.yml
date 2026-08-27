@@ -15,10 +15,16 @@ jobs:
 
     steps:
 
+      # =========================
+      # Checkout Repository
+      # =========================
       - name: Checkout
         uses: actions/checkout@v4
 
 
+      # =========================
+      # Setup Node LTS
+      # =========================
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -26,10 +32,16 @@ jobs:
           cache: npm
 
 
+      # =========================
+      # Install Dependencies
+      # =========================
       - name: Install Dependencies
         run: npm install
 
 
+      # =========================
+      # Build Next.js
+      # =========================
       - name: Build Next.js
         run: npm run build
         env:
@@ -37,10 +49,18 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
 
+      # =========================
+      # Install Latest Vercel CLI
+      # =========================
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+
+      # =========================
+      # Deploy Production
+      # =========================
       - name: Deploy Vercel Production
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
