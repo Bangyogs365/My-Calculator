@@ -62,6 +62,7 @@ Skema database berevolusi melalui tiga fase besar:
 | 28 | 20260827153739 | `fix_frontend_runtime_rls_policies` | Perbaikan: mengaktifkan RLS + policy akses pada tabel yang sebelumnya gagal diakses frontend |
 | 29 | 20260827181311 | `drop_legacy_roomcode_chat_model` | **Pembersihan**: drop tabel `messages`, `devices`, `room_members`, `profiles`, `message_hidden_for`, `family_accounts` (semua kosong) + RPC lama (`join_room`, `leave_room`, `mark_room_read`, `get_chat_list`, `get_room_messages`, `touch_updated_at`) |
 | 30 | 20260827181500-an | `drop_orphaned_family_id_column` | Drop kolom yatim `user_profiles.family_id` (FK-nya hilang saat `family_accounts` didrop, kolomnya tertinggal) |
+| 31 | 20260827183000-an | `add_get_chat_list_v2_account_based` | RPC baru `get_chat_list_v2(p_user_id)` — pengganti `get_chat_list` lama, untuk model akun. Sudah diuji, berfungsi. |
 
 ---
 
@@ -100,14 +101,6 @@ Skema database berevolusi melalui tiga fase besar:
 | `chat-media` | Tidak | 25 MB | image/*, video/mp4/webm, audio/webm/mp4/mpeg/ogg |
 
 ---
-
-## Catatan Keamanan & Rekomendasi
-
-1. **RLS permisif**: Hampir semua policy saat ini adalah `USING (true) WITH CHECK (true)` — artinya siapa pun dengan anon key dapat membaca/menulis semua baris. Ini wajar untuk prototipe cepat, tapi untuk pemakaian privat keluarga yang berkelanjutan sebaiknya dipersempit berdasarkan `auth.uid()` agar satu anggota tidak bisa membaca data anggota lain di luar percakapan yang sama.
-2. **`login_pin_hash`**: pastikan hashing dilakukan di sisi klien/edge function dengan algoritma yang tepat (bcrypt/argon2), bukan disimpan sebagai teks biasa atau hash lemah.
-3. **Duplikasi index**: beberapa index (mis. `idx_chat_messages_conversation_time`, `idx_contacts_user`) dibuat ulang di beberapa migrasi berurutan — tidak berbahaya (`IF NOT EXISTS`) tapi bisa dirapikan.
-4. ~~Tabel Fase 1 vs Fase 3~~ — **sudah selesai**: tabel prototipe lama (`messages`, `devices`, `room_members`, `profiles`, `message_hidden_for`, `family_accounts`) dan RPC-nya sudah dihapus (migrasi #29–#30), termasuk kolom yatim `user_profiles.family_id`. Sekarang hanya ada satu model chat aktif.
-5. **`app_gallery_media.expires_at`**: pastikan ada cron/edge function terjadwal yang benar-benar mengeksekusi `media_cleanup_queue`, karena kolom `expires_at` sendiri tidak otomatis menghapus baris.
 
 ---
 
