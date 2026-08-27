@@ -1,4 +1,4 @@
-# Frontend Structure — My Calculator (Family Chat)
+# Frontend Structure — My Calculator
 
 **Untuk:** panduan struktur build frontend, mengacu ke `backendkontrak.md`.
 **Asumsi stack:** React + PWA (disesuaikan dari catatan `push_notifications` di backend yang menyebut "PWA push worker"). Kalau stack sebenarnya React Native/Flutter, struktur folder di bawah tetap relevan secara konsep — cuma penamaan file yang beda.
@@ -111,7 +111,7 @@ src/
 | Layar | Tabel/RPC yang dipakai | Catatan |
 |---|---|---|
 | Kalkulator (`/`) | `user_access_settings`, `app_entry_sessions` | Kalkulator harus berfungsi 100% normal; deteksi PIN berjalan di background tanpa mengubah tampilan |
-| Chat list | `conversations`, `conversation_members`, `chat_messages` (last message), `chat_unread_counts` | Belum ada RPC gabungan pengganti `get_chat_list` lama — perlu query join manual atau minta RPC baru (lihat bagian 5) |
+| Chat list | RPC `get_chat_list_v2(p_user_id)` | Satu panggilan, sudah termasuk lawan bicara + last message + unread count |
 | Ruang chat | `chat_messages`, `chat_media`, `chat_typing_status`, realtime subscribe | Subscribe ke `chat_messages` filter `conversation_id`, dengarkan INSERT + UPDATE (status baca) |
 | Kontak | `contacts`, `contact_invites` | Cek `is_blocked` sebelum tampilkan kontak di UI kirim pesan |
 | Profil | `user_profiles`, bucket `avatars` | Ubah PIN → hash ulang, update `login_pin_hash` + `pin_updated_at` |
@@ -130,11 +130,12 @@ src/
 
 ---
 
-## 5. Yang Masih Perlu Diputuskan Sebelum Build Chat List
+## 5. Chat List — Sudah Ada RPC-nya
 
-Karena `get_chat_list` RPC lama sudah dihapus, ada dua opsi untuk chat list:
+`get_chat_list_v2(p_user_id)` sudah dibuat dan diuji (lihat `backendkontrak.md` bagian 8) — satu panggilan RPC langsung mengembalikan daftar percakapan + lawan bicara + pesan terakhir + unread count. Pakai ini di `useChatList.ts`, tidak perlu lagi join manual 3 tabel.
 
-1. **Query manual di frontend** (join `conversation_members` → `conversations` → `chat_messages` terbaru per percakapan) — lebih fleksibel tapi query-nya cukup kompleks dan butuh beberapa roundtrip.
-2. **Minta RPC baru** setara `get_chat_list` tapi untuk model akun (`user_id` bukan `device_id`) — satu roundtrip, lebih cepat, tapi butuh nambah migrasi.
+Yang **belum** ada RPC-nya (masih perlu query manual per tabel):
+- Ambil isi pesan per percakapan (`chat_messages` filter `conversation_id`)
+- Tandai pesan sebagai dibaca (update `chat_messages.status` + `chat_unread_counts`)
 
-Aku sarankan opsi 2 kalau performa chat list penting (biasanya iya). Mau aku buatkan RPC-nya sekarang?
+Kalau mau, ini juga bisa dibuatkan RPC-nya biar `useMessages.ts` lebih ringkas.
