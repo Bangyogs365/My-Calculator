@@ -16,14 +16,14 @@ jobs:
     steps:
 
       # =========================
-      # Checkout Repository
+      # Checkout Code
       # =========================
       - name: Checkout
         uses: actions/checkout@v4
 
 
       # =========================
-      # Setup Node LTS
+      # Setup Node
       # =========================
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,14 +33,14 @@ jobs:
 
 
       # =========================
-      # Install Dependency
+      # Install Dependencies
       # =========================
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
 
       # =========================
-      # Build Test
+      # Build Next.js
       # =========================
       - name: Build Next.js
         run: npm run build
@@ -50,16 +50,12 @@ jobs:
 
 
       # =========================
-      # Deploy Production Vercel
+      # Deploy Production
       # =========================
       - name: Deploy Vercel Production
         uses: amondnet/vercel-action@v25
         with:
-
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-
           vercel-args: '--prod'
