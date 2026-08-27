@@ -15,16 +15,10 @@ jobs:
 
     steps:
 
-      # =========================
-      # Checkout Code
-      # =========================
       - name: Checkout
         uses: actions/checkout@v4
 
 
-      # =========================
-      # Setup Node
-      # =========================
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -32,16 +26,10 @@ jobs:
           cache: npm
 
 
-      # =========================
-      # Install Dependencies
-      # =========================
       - name: Install Dependencies
         run: npm install
 
 
-      # =========================
-      # Build Next.js
-      # =========================
       - name: Build Next.js
         run: npm run build
         env:
@@ -49,9 +37,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
 
-      # =========================
-      # Deploy Production
-      # =========================
       - name: Deploy Vercel Production
         uses: amondnet/vercel-action@v25
         with:
