@@ -211,7 +211,39 @@ Realtime: `chat_messages` punya `REPLICA IDENTITY FULL` → subscribe langsung u
 
 ## 8. RPC / Fungsi yang Tersedia untuk Frontend
 
-> Catatan: RPC lama berbasis room-code (`join_room`, `leave_room`, `mark_room_read`, `get_chat_list`, `get_room_messages`) sudah **dihapus permanen** dari database (27 Agu 2026, migrasi `drop_legacy_roomcode_chat_model`) karena tidak pernah punya data dan sudah digantikan model akun. Belum ada RPC pengganti untuk `get_chat_list`/`get_room_messages` di model baru — saat ini frontend perlu query langsung ke `conversations`/`chat_messages`/`conversation_members` (join manual), atau minta dibuatkan RPC baru setara untuk model akun bila dibutuhkan.
+> Catatan: RPC lama berbasis room-code (`join_room`, `leave_room`, `mark_room_read`, `get_chat_list`, `get_room_messages`) sudah **dihapus permanen** dari database (27 Agu 2026, migrasi `drop_legacy_roomcode_chat_model`) karena tidak pernah punya data dan sudah digantikan model akun.
+
+### `get_chat_list_v2(p_user_id uuid)` — pengganti chat list, model akun
+
+Satu panggilan RPC untuk isi layar chat list, sudah termasuk info kontak lawan bicara + pesan terakhir + unread count. Sudah diuji langsung di database dan berfungsi.
+
+| Kolom return | Tipe | Keterangan |
+|---|---|---|
+| `conversation_id` | uuid | |
+| `conversation_type` | text | `private`\|`group`\|`family` |
+| `title` | text | untuk group/family; null di chat private |
+| `is_private` | boolean | |
+| `other_user_id` | uuid | lawan bicara (khusus chat 1-on-1; untuk group akan ambil 1 member acak — lihat catatan) |
+| `other_display_name`, `other_username`, `other_avatar_url` | text | |
+| `other_is_online` | boolean | |
+| `other_last_seen` | timestamptz | |
+| `last_message_content` | text | |
+| `last_message_type` | text | |
+| `last_message_at` | timestamptz | |
+| `last_message_sender_id` | uuid | |
+| `last_message_status` | text | `sent`\|`delivered`\|`read` |
+| `unread_count` | integer | dari `chat_unread_counts`, default `0` jika belum ada baris |
+
+Cara panggil dari frontend:
+```ts
+const { data, error } = await supabase.rpc('get_chat_list_v2', {
+  p_user_id: currentUserProfileId
+});
+```
+
+**Catatan untuk chat grup**: fungsi ini mengambil "lawan bicara" dengan `LIMIT 1` member lain — cocok untuk chat private (1-on-1), tapi untuk `conversation_type = 'group'`/`'family'` kolom `other_*` tidak representatif (cuma nampilin 1 member acak). Kalau grup chat mau dipakai, kolom `title` sudah cukup untuk nama tampilan — jangan andalkan `other_display_name` di kasus itu. Kalau perlu daftar semua member grup, query terpisah ke `conversation_members`.
+
+Fungsi ini **belum ada pengganti** untuk `get_room_messages` (ambil isi pesan per percakapan) dan `mark_room_read` (tandai dibaca) — untuk sementara query langsung ke `chat_messages` (filter `conversation_id`, `is_deleted = false`, order `created_at`) dan update manual ke `chat_messages.status`/`chat_unread_counts`.
 
 ### Fungsi admin (khusus role admin, terproteksi `is_admin_user`)
 
