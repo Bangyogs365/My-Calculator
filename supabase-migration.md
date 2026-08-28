@@ -2,8 +2,8 @@
 
 **Project ref:** `ewdfgbuqnvfczaqqmzgh`
 **Database:** PostgreSQL 17.6.1 (Supabase, region `ap-southeast-1`)
-**Total migrasi:** 30
-**Rentang waktu:** 27 Agustus 2026, 01:53 — 18:16 (relatif terhadap timestamp UTC)
+**Total migrasi:** 38
+**Rentang waktu:** 27–28 Agustus 2026 (relatif terhadap timestamp UTC)
 
 Dokumen ini mencatat seluruh riwayat migrasi database untuk aplikasi chat keluarga privat (disamarkan dengan antarmuka kalkulator). Digunakan sebagai referensi teknis internal — bukan untuk dipublikasikan.
 
@@ -63,6 +63,13 @@ Skema database berevolusi melalui tiga fase besar:
 | 29 | 20260827181311 | `drop_legacy_roomcode_chat_model` | **Pembersihan**: drop tabel `messages`, `devices`, `room_members`, `profiles`, `message_hidden_for`, `family_accounts` (semua kosong) + RPC lama (`join_room`, `leave_room`, `mark_room_read`, `get_chat_list`, `get_room_messages`, `touch_updated_at`) |
 | 30 | 20260827181500-an | `drop_orphaned_family_id_column` | Drop kolom yatim `user_profiles.family_id` (FK-nya hilang saat `family_accounts` didrop, kolomnya tertinggal) |
 | 31 | 20260827183000-an | `add_get_chat_list_v2_account_based` | RPC baru `get_chat_list_v2(p_user_id)` — pengganti `get_chat_list` lama, untuk model akun. Sudah diuji, berfungsi. |
+| 32 | 27 Agu, malam | `add_rls_policies_scoped_self_and_contacts` | **Kritis**: tambah RLS policy ke 15 tabel yang sebelumnya nol policy (deny-all) — `user_profiles`, gerbang PIN, presence, settings, dll. Semua dibatasi `auth.uid()`/kontak sendiri, bukan `USING(true)`. Tambah helper `my_profile_id()`, `is_conversation_member()`. Daftarkan `chat_messages`, `conversations`, `user_presence`, `chat_typing_status`, `chat_unread_counts` ke realtime publication (sebelumnya kosong total). |
+| 33 | 27 Agu, malam | `add_accept_invite_and_ensure_settings_rpc` | RPC `accept_contact_invite` (invite → kontak dua arah + auto-buat percakapan private) dan `ensure_user_settings` (default row `user_notification_settings`/`media_settings`) |
+| 34 | 27 Agu, malam | `add_unique_user_id_session_tables` | Unique constraint `user_id` di `app_entry_sessions`/`app_access_sessions` (dibutuhkan untuk upsert dari frontend) |
+| 35 | 28 Agu | `add_admin_default_profile_template` | Tabel `admin_profile_defaults` (singleton) + RPC `admin_set_default_profile_template`, `signup_with_default_profile` — profil awal user baru terisi dari template admin |
+| 36 | 28 Agu | `fix_avatars_storage_ownership` | Bucket `avatars`: upload/update sebelumnya bisa oleh siapa saja (tanpa cek kepemilikan folder) — diperbaiki jadi wajib `auth.uid()` cocok path |
+| 37 | 28 Agu | `cleanup_redundant_avatar_storage_policies` | **Audit ulang**: policy `avatars owner upload`/`avatars owner delete` dari migrasi #36 ternyata duplikat dengan policy generik `storage_insert_owner`/`storage_delete_owner` yang sudah lama ada (berlaku ke semua bucket). Dihapus, tidak mengubah perilaku akses — cuma rapi-rapi. Policy `avatars owner update` tetap dipertahankan (tidak ada padanan generiknya). |
+| 38 | 28 Agu | `final_cleanup_duplicate_gallery_and_permissive_policy` | **Audit ulang**: (a) policy lama `frontend access media cleanup queue` (`USING(true)`) di `media_cleanup_queue` ternyata belum pernah dihapus saat migrasi #32 — jadi restriksi barunya tidak berefek. (b) Ketemu tabel `app_gallery` + fungsi `cleanup_expired_gallery()` — sistem galeri paralel yang tidak pernah dipakai (0 baris, tidak direferensikan frontend maupun `media_cleanup_queue`, pakai konvensi `auth.uid()` langsung yang beda dari `app_gallery_media`). Keduanya dihapus, konsolidasi ke satu sistem galeri (`app_gallery_media`). |
 
 ---
 
@@ -101,6 +108,14 @@ Skema database berevolusi melalui tiga fase besar:
 | `chat-media` | Tidak | 25 MB | image/*, video/mp4/webm, audio/webm/mp4/mpeg/ogg |
 
 ---
+
+## Catatan Keamanan & Rekomendasi
+
+1. **RLS permisif**: Hampir semua policy saat ini adalah `USING (true) WITH CHECK (true)` — artinya siapa pun dengan anon key dapat membaca/menulis semua baris. Ini wajar untuk prototipe cepat, tapi untuk pemakaian privat keluarga yang berkelanjutan sebaiknya dipersempit berdasarkan `auth.uid()` agar satu anggota tidak bisa membaca data anggota lain di luar percakapan yang sama.
+2. **`login_pin_hash`**: pastikan hashing dilakukan di sisi klien/edge function dengan algoritma yang tepat (bcrypt/argon2), bukan disimpan sebagai teks biasa atau hash lemah.
+3. **Duplikasi index**: beberapa index (mis. `idx_chat_messages_conversation_time`, `idx_contacts_user`) dibuat ulang di beberapa migrasi berurutan — tidak berbahaya (`IF NOT EXISTS`) tapi bisa dirapikan.
+4. ~~Tabel Fase 1 vs Fase 3~~ — **sudah selesai**: tabel prototipe lama (`messages`, `devices`, `room_members`, `profiles`, `message_hidden_for`, `family_accounts`) dan RPC-nya sudah dihapus (migrasi #29–#30), termasuk kolom yatim `user_profiles.family_id`. Sekarang hanya ada satu model chat aktif.
+5. **`app_gallery_media.expires_at`**: pastikan ada cron/edge function terjadwal yang benar-benar mengeksekusi `media_cleanup_queue`, karena kolom `expires_at` sendiri tidak otomatis menghapus baris.
 
 ---
 
