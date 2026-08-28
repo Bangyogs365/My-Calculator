@@ -9,6 +9,7 @@ import MessageComposer from "../components/MessageComposer";
 
 export default function ChatRoomScreen({ conversationId }: { conversationId: string }) {
   const { messages, setMessages } = useChatMessages(conversationId);
+  const { sendText } = useSendMessage();
 
   const onRealtimeEvent = useCallback(
     (payload: unknown) => {
@@ -26,12 +27,11 @@ export default function ChatRoomScreen({ conversationId }: { conversationId: str
 
   const handleSend = useCallback(
     async (text: string) => {
-      const sender = await useSendMessage();
-      await sender.sendText(conversationId, text);
+      await sendText(conversationId, text);
       // Tidak perlu setMessages manual di sini — INSERT akan masuk lewat
       // realtime subscribe di atas begitu tersimpan di database.
     },
-    [conversationId]
+    [conversationId, sendText]
   );
 
   return (
@@ -44,4 +44,3 @@ export default function ChatRoomScreen({ conversationId }: { conversationId: str
     </main>
   );
 }
-
