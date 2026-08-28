@@ -1,6 +1,8 @@
-name: My Calculator CI & Deploy
+name: My Calculator CI PWA & Deploy
+
 
 on:
+
   push:
     branches:
       - main
@@ -12,50 +14,125 @@ on:
   workflow_dispatch:
 
 
+
 permissions:
+
   contents: read
+
 
 
 jobs:
 
-  build:
+
+  build-deploy:
+
+
+    name: Build Next.js + PWA + Deploy
 
     runs-on: ubuntu-latest
 
 
+
     steps:
 
-      - name: Checkout
+
+      # =========================
+      # Checkout
+      # =========================
+
+      - name: Checkout Repository
+
         uses: actions/checkout@v4
 
 
-      - name: Setup Node 22
+
+      # =========================
+      # Node Setup
+      # =========================
+
+      - name: Setup Node.js 22
+
         uses: actions/setup-node@v4
+
         with:
+
           node-version: 22
+
           cache: npm
 
 
+
+      # =========================
+      # Install
+      # =========================
+
       - name: Install Dependencies
+
         run: npm install
 
 
-      - name: Lint
+
+      # =========================
+      # Check PWA Files
+      # =========================
+
+      - name: Validate PWA Setup
+
+        run: |
+
+          echo "Checking PWA configuration..."
+
+          test -f public/manifest.json || echo "WARNING: manifest.json missing"
+
+          test -d public/icons || echo "WARNING: icons folder missing"
+
+          test -f next.config.mjs || echo "WARNING: next.config.mjs missing"
+
+
+
+      # =========================
+      # Lint
+      # =========================
+
+      - name: ESLint Check
+
         run: npm run lint
+
         continue-on-error: true
 
 
-      - name: Build Next.js
+
+      # =========================
+      # Build
+      # =========================
+
+      - name: Build Next.js Application
+
         run: npm run build
+
         env:
+
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
 
-      - name: Deploy Vercel
+
+
+      # =========================
+      # Deploy Vercel
+      # =========================
+
+      - name: Deploy to Vercel
+
         if: github.event_name != 'pull_request'
+
         uses: amondnet/vercel-action@v25
+
         with:
+
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
+
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
