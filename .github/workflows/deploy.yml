@@ -1,0 +1,108 @@
+name: My Calculator CI & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+
+
+jobs:
+
+  build-deploy:
+
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+      # ==========================
+      # Checkout Source
+      # ==========================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      # ==========================
+      # Setup Node
+      # ==========================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+
+      # ==========================
+      # Install Package
+      # ==========================
+      - name: Install Dependencies
+        run: npm install
+
+
+      # ==========================
+      # Security Audit
+      # ==========================
+      - name: Check Security
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+
+      # ==========================
+      # Lint
+      # ==========================
+      - name: ESLint Check
+        run: npm run lint
+        continue-on-error: true
+
+
+      # ==========================
+      # Production Build
+      # ==========================
+      - name: Build Application
+        run: npm run build
+
+        env:
+          NEXT_PUBLIC_SUPABASE_URL:
+            ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+            ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+
+
+
+      # ==========================
+      # Install Vercel
+      # ==========================
+      - name: Install Vercel CLI
+        if: github.event_name != 'pull_request'
+        run: npm install -g vercel
+
+
+      # ==========================
+      # Deploy
+      # ==========================
+      - name: Deploy Production
+        if: github.event_name != 'pull_request'
+
+        run: |
+          vercel --prod \
+          --token=${{ secrets.VERCEL_TOKEN }}
+
+        env:
+
+          VERCEL_ORG_ID:
+            ${{ secrets.VERCEL_ORG_ID }}
+
+          VERCEL_PROJECT_ID:
+            ${{ secrets.VERCEL_PROJECT_ID }}
