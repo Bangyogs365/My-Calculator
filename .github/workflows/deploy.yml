@@ -1,18 +1,9 @@
-name: My Calculator CI PWA & Deploy
+name: Manual Full Deploy
 
 
 on:
 
-  push:
-    branches:
-      - main
-
-  pull_request:
-    branches:
-      - main
-
   workflow_dispatch:
-
 
 
 permissions:
@@ -24,21 +15,16 @@ permissions:
 jobs:
 
 
-  build-deploy:
+  deploy:
 
 
-    name: Build Next.js + PWA + Deploy
+    name: Build and Deploy Production
 
     runs-on: ubuntu-latest
 
 
-
     steps:
 
-
-      # =========================
-      # Checkout
-      # =========================
 
       - name: Checkout Repository
 
@@ -46,11 +32,7 @@ jobs:
 
 
 
-      # =========================
-      # Node Setup
-      # =========================
-
-      - name: Setup Node.js 22
+      - name: Setup Node.js
 
         uses: actions/setup-node@v4
 
@@ -62,39 +44,35 @@ jobs:
 
 
 
-      # =========================
-      # Install
-      # =========================
-
       - name: Install Dependencies
 
         run: npm install
 
 
 
-      # =========================
-      # Check PWA Files
-      # =========================
-
-      - name: Validate PWA Setup
+      - name: Check Project
 
         run: |
 
-          echo "Checking PWA configuration..."
+          echo "Checking project..."
 
-          test -f public/manifest.json || echo "WARNING: manifest.json missing"
+          node -v
 
-          test -d public/icons || echo "WARNING: icons folder missing"
-
-          test -f next.config.mjs || echo "WARNING: next.config.mjs missing"
+          npm -v
 
 
 
-      # =========================
-      # Lint
-      # =========================
+      - name: Check PWA Files
 
-      - name: ESLint Check
+        run: |
+
+          test -f public/manifest.json || echo "Manifest belum ada"
+
+          test -d public/icons || echo "Icon folder belum ada"
+
+
+
+      - name: Lint
 
         run: npm run lint
 
@@ -102,11 +80,7 @@ jobs:
 
 
 
-      # =========================
-      # Build
-      # =========================
-
-      - name: Build Next.js Application
+      - name: Build Production
 
         run: npm run build
 
@@ -118,14 +92,7 @@ jobs:
 
 
 
-
-      # =========================
-      # Deploy Vercel
-      # =========================
-
-      - name: Deploy to Vercel
-
-        if: github.event_name != 'pull_request'
+      - name: Deploy Vercel
 
         uses: amondnet/vercel-action@v25
 
