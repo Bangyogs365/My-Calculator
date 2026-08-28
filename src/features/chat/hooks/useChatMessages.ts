@@ -12,6 +12,7 @@ export function useChatMessages(conversationId?: string) {
         .from("chat_messages")
         .select("*")
         .eq("conversation_id", conversationId)
+        .eq("is_deleted", false)
         .order("created_at", { ascending: true });
 
       setMessages(data ?? []);
