@@ -1,17 +1,17 @@
+"use client";
+
+import { useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { getMyProfileId } from "@/lib/profile";
 
-export async function useSendMessage() {
-  async function sendText(
-    conversationId: string,
-    content: string
-  ) {
+export function useSendMessage() {
+  const sendText = useCallback(async (conversationId: string, content: string) => {
     const senderId = await getMyProfileId();
     if (!senderId) {
       return { data: null, error: { message: "Belum login / profil belum ada" } };
     }
 
-    return await supabase
+    return supabase
       .from("chat_messages")
       .insert({
         conversation_id: conversationId,
@@ -19,9 +19,7 @@ export async function useSendMessage() {
         content,
         message_type: "text",
       });
-  }
+  }, []);
 
-  return {
-    sendText,
-  };
+  return { sendText };
 }
