@@ -18,91 +18,44 @@ permissions:
 
 jobs:
 
-  build-deploy:
+  build:
 
-    name: Build and Deploy
     runs-on: ubuntu-latest
 
 
     steps:
 
-      # ==========================
-      # Checkout Source
-      # ==========================
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
 
-      # ==========================
-      # Setup Node
-      # ==========================
-      - name: Setup Node.js
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
 
-      # ==========================
-      # Install Package
-      # ==========================
       - name: Install Dependencies
         run: npm install
 
 
-      # ==========================
-      # Security Audit
-      # ==========================
-      - name: Check Security
-        run: npm audit --audit-level=high
-        continue-on-error: true
-
-
-      # ==========================
-      # Lint
-      # ==========================
-      - name: ESLint Check
+      - name: Lint
         run: npm run lint
         continue-on-error: true
 
 
-      # ==========================
-      # Production Build
-      # ==========================
-      - name: Build Application
+      - name: Build Next.js
         run: npm run build
-
         env:
-          NEXT_PUBLIC_SUPABASE_URL:
-            ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-            ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
 
-
-      # ==========================
-      # Install Vercel
-      # ==========================
-      - name: Install Vercel CLI
+      - name: Deploy Vercel
         if: github.event_name != 'pull_request'
-        run: npm install -g vercel
-
-
-      # ==========================
-      # Deploy
-      # ==========================
-      - name: Deploy Production
-        if: github.event_name != 'pull_request'
-
-        run: |
-          vercel --prod \
-          --token=${{ secrets.VERCEL_TOKEN }}
-
-        env:
-
-          VERCEL_ORG_ID:
-            ${{ secrets.VERCEL_ORG_ID }}
-
-          VERCEL_PROJECT_ID:
-            ${{ secrets.VERCEL_PROJECT_ID }}
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
