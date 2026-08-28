@@ -1,0 +1,77 @@
+name: Manual App Update
+
+
+on:
+
+  workflow_dispatch:
+
+
+
+permissions:
+
+  contents: write
+
+
+
+jobs:
+
+
+  update:
+
+
+    name: Update Application
+
+    runs-on: ubuntu-latest
+
+
+
+    steps:
+
+
+      - name: Checkout
+
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Node
+
+        uses: actions/setup-node@v4
+
+        with:
+
+          node-version: 22
+
+          cache: npm
+
+
+
+      - name: Install
+
+        run: npm install
+
+
+
+      - name: Build Update
+
+        run: npm run build
+
+        env:
+
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+
+
+
+      - name: Deploy Update
+
+        uses: amondnet/vercel-action@v25
+
+        with:
+
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
