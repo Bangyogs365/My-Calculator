@@ -33,6 +33,19 @@ export async function getMyProfileId(): Promise<string | null> {
   return profile?.id ?? null;
 }
 
+export async function getProfileById(
+  profileId: string,
+): Promise<MyProfile | null> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("id, auth_user_id, display_name, login_pin_hash")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as MyProfile;
+}
+
 /**
  * Khusus untuk keperluan yang butuh auth.uid() mentah (misalnya path storage
  * bucket chat-media/avatars) — JANGAN dipakai untuk sender_id/user_id di
