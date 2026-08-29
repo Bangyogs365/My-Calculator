@@ -1,61 +1,321 @@
 "use client";
 
+
 import {
-useEffect
+  useEffect,
+  useState,
+  useCallback
 } from "react";
 
 
 import {
-supabase
+  supabase
 } from "@/lib/supabase";
 
 
 
+
+
+export interface UserPresence {
+
+
+user_id:string;
+
+
+status:
+"online"
+|
+"offline"
+|
+"away";
+
+
+last_active:string;
+
+
+updated_at:string;
+
+
+device_time?:string|null;
+
+
+device_timezone?:string|null;
+
+
+}
+
+
+
+
+
+
+
+
+
 export function usePresence(
-userId:string
+
+userId?:string
+
 ){
 
+
+
+const [
+
+onlineUsers,
+
+setOnlineUsers
+
+]
+
+=
+
+useState<UserPresence[]>([]);
+
+
+
+
+
+
+
+
+
+/**
+ * Update presence user sendiri
+ */
+
+const updatePresence = useCallback(
+
+async(
+
+status:
+"online"
+|
+"offline"
+|
+"away"
+
+)=>
+
+{
+
+
+if(!userId)
+
+return;
+
+
+
+
+
+const now =
+
+new Date()
+
+.toISOString();
+
+
+
+
+
+
+const {
+
+error
+
+}
+
+=
+
+await supabase
+
+
+.from(
+
+"user_presence"
+
+)
+
+
+.upsert({
+
+user_id:
+
+userId,
+
+
+status,
+
+
+last_active:
+
+now,
+
+
+updated_at:
+
+now,
+
+
+device_time:
+
+now,
+
+
+device_timezone:
+
+Intl.DateTimeFormat()
+
+.resolvedOptions()
+
+.timeZone
+
+
+});
+
+
+
+
+
+
+
+if(error){
+
+console.error(
+
+"presence error",
+
+error
+
+);
+
+}
+
+
+},[userId]);
+
+
+
+
+
+
+
+
+
+/**
+ * Listen realtime presence
+ */
 
 useEffect(()=>{
 
 
 if(!userId)
+
 return;
 
 
 
-async function heartbeat(){
 
 
-await supabase
 
-.from(
-"user_presence"
+const channel =
+
+supabase
+
+
+.channel(
+
+"user-presence"
+
 )
 
-.upsert({
 
-user_id:userId,
 
-status:
-"online",
 
-last_active:
-new Date()
-.toISOString(),
 
-last_heartbeat:
-new Date()
-.toISOString(),
 
-device_time:
-new Date()
-.toISOString(),
 
-device_timezone:
-Intl.DateTimeFormat()
-.resolvedOptions()
-.timeZone
+.on(
+
+"postgres_changes",
+
+{
+
+
+event:"*",
+
+schema:"public",
+
+table:"user_presence"
+
+},
+
+
+
+(payload)=>{
+
+
+const row =
+
+payload.new as UserPresence;
+
+
+
+
+
+setOnlineUsers(
+
+prev=>{
+
+
+const exists =
+
+prev.some(
+
+item=>
+
+item.user_id === row.user_id
+
+);
+
+
+
+
+
+if(exists){
+
+
+return prev.map(
+
+item=>
+
+item.user_id === row.user_id
+
+?
+
+row
+
+:
+
+item
+
+);
+
+
+}
+
+
+
+
+
+return [
+
+...prev,
+
+row
+
+];
+
 
 });
 
@@ -63,51 +323,114 @@ Intl.DateTimeFormat()
 }
 
 
-
-heartbeat();
-
+)
 
 
-const timer =
-setInterval(
-heartbeat,
-30000
+
+
+
+
+
+.subscribe();
+
+
+
+
+
+
+
+
+// set online ketika mount
+
+updatePresence(
+
+"online"
+
 );
 
 
 
-return ()=>{
 
 
-clearInterval(timer);
 
 
-supabase
-.from(
-"user_presence"
-)
-.update({
+/**
+ * offline ketika keluar
+ */
 
-status:
-"offline",
+const handleUnload = ()=>{
 
-last_active:
-new Date()
-.toISOString()
 
-})
-.eq(
-"user_id",
-userId
+updatePresence(
+
+"offline"
+
 );
 
 
 };
 
 
-},[
-userId
-]);
+
+
+window.addEventListener(
+
+"beforeunload",
+
+handleUnload
+
+);
+
+
+
+
+
+
+
+return ()=>{
+
+
+window.removeEventListener(
+
+"beforeunload",
+
+handleUnload
+
+);
+
+
+
+supabase
+
+.removeChannel(
+
+channel
+
+);
+
+
+
+};
+
+
+},[userId,updatePresence]);
+
+
+
+
+
+
+
+return {
+
+
+onlineUsers,
+
+
+updatePresence
+
+
+};
 
 
 }
