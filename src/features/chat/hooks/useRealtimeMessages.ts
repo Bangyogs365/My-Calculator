@@ -3,8 +3,7 @@
 
 import {
   useEffect,
-  useState,
-  useCallback
+  useState
 } from "react";
 
 
@@ -52,74 +51,79 @@ export function useRealtimeMessages(
 
 
 
-
-  /*
-   * Load history awal
-   */
-  const loadMessages =
-  useCallback(async()=>{
+  useEffect(()=>{
 
 
-    if(!conversationId)
-      return;
+    if(!conversationId){
 
-
-
-    try{
-
-
-      setLoading(true);
-
-
-
-      const data =
-      await getMessages(
-        conversationId
-      );
-
-
-
-      setMessages(data);
-
-
-
-    }catch(err){
-
-
-      setError(
-        err instanceof Error
-        ?
-        err.message
-        :
-        "Failed loading messages"
-      );
-
-
-    }finally{
-
+      setMessages([]);
 
       setLoading(false);
 
+      return;
 
     }
 
 
 
-  },[
-    conversationId
-  ]);
+    let mounted = true;
 
 
 
+    async function loadMessages(){
+
+
+      try{
+
+
+        setLoading(true);
+
+
+        const result =
+          await getMessages(
+            conversationId
+          );
 
 
 
+        if(mounted){
 
-  useEffect(()=>{
+          setMessages(result);
+
+        }
 
 
-    if(!conversationId)
-      return;
+
+      }
+      catch(err){
+
+
+        if(mounted){
+
+          setError(
+            err instanceof Error
+            ? err.message
+            : "Failed load messages"
+          );
+
+        }
+
+
+      }
+      finally{
+
+
+        if(mounted){
+
+          setLoading(false);
+
+        }
+
+
+      }
+
+
+    }
 
 
 
@@ -128,137 +132,146 @@ export function useRealtimeMessages(
 
 
 
-    /*
-     * Realtime channel
-     */
-
     const channel =
-    supabase
 
-    .channel(
-      `conversation:${conversationId}`
-    )
+      supabase
 
-
-
-    /*
-     * Pesan baru
-     */
-
-    .on(
-
-      "postgres_changes",
-
-      {
-
-        event:"INSERT",
-
-        schema:"public",
-
-        table:"chat_messages",
-
-        filter:
-        `conversation_id=eq.${conversationId}`
-
-      },
-
-
-      (payload)=>{
-
-
-        const newMessage =
-        payload.new as ChatMessage;
+      .channel(
+        `conversation:${conversationId}`
+      )
 
 
 
-        setMessages(
-          previous=>[
+      // Pesan baru masuk
 
-            ...previous,
+      .on(
 
-            newMessage
+        "postgres_changes",
 
-          ]
-        );
+        {
+          event:"INSERT",
 
+          schema:"public",
 
-      }
+          table:"chat_messages",
 
-    )
+          filter:
+          `conversation_id=eq.${conversationId}`
 
-
-
-
-
-    /*
-     * Update status pesan
-     *
-     * sent
-     * delivered
-     * read
-     */
-
-    .on(
-
-      "postgres_changes",
-
-      {
-
-        event:"UPDATE",
-
-        schema:"public",
-
-        table:"chat_messages",
-
-        filter:
-        `conversation_id=eq.${conversationId}`
-
-      },
+        },
 
 
-      (payload)=>{
+        (payload)=>{
 
 
-        const updated =
-        payload.new as ChatMessage;
+          const newMessage =
+            payload.new as ChatMessage;
 
 
 
-        setMessages(
-          previous =>
-
-          previous.map(
-            message =>
-
-            message.id === updated.id
-
-            ?
-
-            updated
-
-            :
-
-            message
-
-          )
-
-        );
+          setMessages(prev=>{
 
 
-      }
-
-    )
+            const exists =
+              prev.some(
+                item =>
+                item.id === newMessage.id
+              );
 
 
 
-    .subscribe();
+            if(exists){
 
+              return prev;
+
+            }
+
+
+
+            return [
+
+              ...prev,
+
+              newMessage
+
+            ];
+
+          });
+
+
+
+        }
+
+      )
+
+
+
+      // Update status read/delivered
+
+      .on(
+
+        "postgres_changes",
+
+        {
+          event:"UPDATE",
+
+          schema:"public",
+
+          table:"chat_messages",
+
+          filter:
+          `conversation_id=eq.${conversationId}`
+
+        },
+
+
+        (payload)=>{
+
+
+          const updated =
+          payload.new as ChatMessage;
+
+
+
+          setMessages(prev=>
+
+
+            prev.map(message=>
+
+
+              message.id === updated.id
+
+              ?
+
+              updated
+
+              :
+
+              message
+
+
+            )
+
+          );
+
+
+        }
+
+      )
+
+
+
+      .subscribe();
 
 
 
 
 
     return ()=>{
+
+
+      mounted = false;
+
 
 
       supabase
@@ -273,8 +286,7 @@ export function useRealtimeMessages(
 
 
   },[
-    conversationId,
-    loadMessages
+    conversationId
   ]);
 
 
@@ -283,16 +295,11 @@ export function useRealtimeMessages(
 
   return {
 
-
     messages,
 
     loading,
 
-    error,
-
-    reload:
-    loadMessages
-
+    error
 
   };
 
