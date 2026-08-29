@@ -17,7 +17,6 @@ import {
   recordSuccessfulEntry,
 } from "@/features/auth-gate/entrySession";
 import { logCalculatorAccess } from "@/features/auth-gate/accessLog";
-import { verifyPin } from "@/features/auth-gate/verifyPin";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -46,36 +45,47 @@ export default function CalculatorScreen() {
 
     setTriggerCode(code);
     setGateError("");
-
-    const savedSession = getSession();
-    if (!savedSession) {
-      setShowProfileSetup(true);
-      return;
-    }
-
     gateRequestInFlight.current = true;
+
     try {
-      const profile = await getProfileById(savedSession.profileId);
+      const deviceId = getDeviceId();
+      const pinHash = await hashPin(code);
 
-      if (!profile) {
+      // Cek dulu ke backend: PIN ini milik profil manapun (admin/member),
+      // bekerja lintas-device, tidak bergantung sesi lokal.
+      const { data: matches, error: rpcError } = await supabase.rpc(
+        "verify_calculator_pin",
+        { p_pin_hash: pinHash, p_device_id: deviceId },
+      );
+
+      if (rpcError) throw rpcError;
+
+      const matched = matches?.[0];
+      if (matched) {
+        createSession(matched.user_id);
+        router.push("/dashboard");
+        return;
+      }
+
+      // Tidak ada profil manapun dengan PIN ini. Kalau device ini sudah
+      // pernah setup sebelumnya, anggap ini percobaan PIN yang salah.
+      const savedSession = getSession();
+      if (savedSession) {
+        const profile = await getProfileById(savedSession.profileId);
+        if (profile) {
+          await logCalculatorAccess(
+            profile.id,
+            "pin_fail",
+            deviceId,
+          ).catch(() => undefined);
+          setGateError("Kode akses salah. Silakan coba lagi.");
+          return;
+        }
         clearSession();
-        setShowProfileSetup(true);
-        return;
       }
 
-      const valid = await verifyPin(code, profile.login_pin_hash);
-      if (!valid) {
-        await logCalculatorAccess(
-          profile.id,
-          "pin_fail",
-          savedSession.deviceId,
-        ).catch(() => undefined);
-        setGateError("Kode akses salah. Silakan coba lagi.");
-        return;
-      }
-
-      await recordSuccessfulEntry(profile.id);
-      router.push("/dashboard");
+      // Benar-benar belum ada profil (device baru & PIN tidak dikenal).
+      setShowProfileSetup(true);
     } catch (error) {
       setGateError(
         error instanceof Error
