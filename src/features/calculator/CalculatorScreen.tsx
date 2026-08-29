@@ -12,6 +12,7 @@ import { hashPin } from "@/lib/crypto/hashPin";
 import { getProfileById } from "@/lib/profile";
 import {
   clearSession,
+  createSession,
   getDeviceId,
   getSession,
   recordSuccessfulEntry,
