@@ -1,96 +1,129 @@
-import { useState, useCallback } from "react";
+"use client";
 
-type Operator = "+" | "-" | "×" | "÷" | null;
+import { useState } from "react";
+
+type Operator = "+" | "-" | "*" | "/";
 
 export function useCalculatorEngine() {
   const [display, setDisplay] = useState("0");
-  const [previousValue, setPreviousValue] = useState<number | null>(null);
-  const [operator, setOperator] = useState<Operator>(null);
-  const [waitingForOperand, setWaitingForOperand] = useState(false);
+  const [firstValue, setFirstValue] = useState<number | null>(null);
+  const [operator, setOperator] = useState<Operator | null>(null);
+  const [waitingNext, setWaitingNext] = useState(false);
 
-  const inputDigit = useCallback(
-    (digit: string) => {
-      if (waitingForOperand) {
-        setDisplay(digit);
-        setWaitingForOperand(false);
-      } else {
-        setDisplay(display === "0" ? digit : display + digit);
+  // menyimpan input angka terakhir untuk trigger gate
+  const [inputHistory, setInputHistory] = useState("");
+
+  function inputNumber(value: string) {
+    setDisplay((current) => {
+      if (waitingNext || current === "0") {
+        return value;
       }
-    },
-    [display, waitingForOperand]
-  );
 
-  const inputDecimal = useCallback(() => {
-    if (waitingForOperand) {
-      setDisplay("0.");
-      setWaitingForOperand(false);
+      return `${current}${value}`.slice(0, 15);
+    });
+
+    setWaitingNext(false);
+
+    if (/^[0-9]$/.test(value)) {
+      setInputHistory((prev) =>
+        `${prev}${value}`.slice(-50)
+      );
+    }
+  }
+
+
+  function chooseOperator(op: Operator) {
+    setFirstValue(Number(display));
+    setOperator(op);
+    setWaitingNext(true);
+  }
+
+
+  function calculate() {
+    if (
+      firstValue === null ||
+      operator === null
+    ) {
       return;
     }
-    if (!display.includes(".")) {
-      setDisplay(display + ".");
+
+
+    const secondValue = Number(display);
+
+    let result = 0;
+
+
+    switch(operator){
+
+      case "+":
+        result = firstValue + secondValue;
+        break;
+
+
+      case "-":
+        result = firstValue - secondValue;
+        break;
+
+
+      case "*":
+        result = firstValue * secondValue;
+        break;
+
+
+      case "/":
+        result =
+          secondValue === 0
+          ? 0
+          : firstValue / secondValue;
+
+        break;
     }
-  }, [display, waitingForOperand]);
 
-  const clear = useCallback(() => {
+
+    setDisplay(
+      Number(
+        result.toFixed(8)
+      ).toString()
+    );
+
+
+    setFirstValue(null);
+    setOperator(null);
+    setWaitingNext(true);
+  }
+
+
+
+  function clear(){
+
     setDisplay("0");
-    setPreviousValue(null);
+
+    setFirstValue(null);
+
     setOperator(null);
-    setWaitingForOperand(false);
-  }, []);
 
-  const compute = useCallback(
-    (a: number, b: number, op: Operator): number => {
-      switch (op) {
-        case "+":
-          return a + b;
-        case "-":
-          return a - b;
-        case "×":
-          return a * b;
-        case "÷":
-          return b === 0 ? NaN : a / b;
-        default:
-          return b;
-      }
-    },
-    []
-  );
+    setWaitingNext(false);
 
-  const inputOperator = useCallback(
-    (nextOperator: Operator) => {
-      const inputValue = parseFloat(display);
+    setInputHistory("");
 
-      if (previousValue === null) {
-        setPreviousValue(inputValue);
-      } else if (operator) {
-        const result = compute(previousValue, inputValue, operator);
-        setDisplay(String(result));
-        setPreviousValue(result);
-      }
+  }
 
-      setWaitingForOperand(true);
-      setOperator(nextOperator);
-    },
-    [display, previousValue, operator, compute]
-  );
 
-  const inputEquals = useCallback(() => {
-    const inputValue = parseFloat(display);
-    if (previousValue === null || operator === null) return;
-
-    const result = compute(previousValue, inputValue, operator);
-    setDisplay(String(result));
-    setPreviousValue(null);
-    setOperator(null);
-    setWaitingForOperand(true);
-  }, [display, previousValue, operator, compute]);
 
   return {
+
     display,
-    inputDigit,
-    inputDecimal,
-    inputOperator,
-    inputEquals,
-    clear,
+
+    inputHistory,
+
+    inputNumber,
+
+    chooseOperator,
+
+    calculate,
+
+    clear
+
   };
+
 }
