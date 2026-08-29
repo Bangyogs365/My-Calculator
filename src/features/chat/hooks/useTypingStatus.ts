@@ -1,92 +1,119 @@
 "use client";
 
 import {
-useEffect,
-useState
+  useEffect,
+  useState
 } from "react";
 
 import {
-supabase
+  supabase
 } from "@/lib/supabase";
 
 
 export function useTypingStatus(
-conversationId:string,
-userId:string
+  conversationId:string,
+  userId:string
 ){
 
-const [typingUsers,setTypingUsers]
-=
-useState<string[]>([]);
+  const [
+    typingUsers,
+    setTypingUsers
+  ] = useState<string[]>([]);
 
 
 
-useEffect(()=>{
+  useEffect(()=>{
+
+    if(!conversationId || !userId)
+      return;
 
 
-const channel =
-supabase
-.channel(
-`typing-${conversationId}`
-)
+    const channel =
+      supabase
+      .channel(
+        `typing:${conversationId}`
+      )
+
+      .on(
+        "postgres_changes",
+        {
+          event:"*",
+          schema:"public",
+          table:"chat_typing_status",
+          filter:
+          `conversation_id=eq.${conversationId}`
+        },
+
+        (payload)=>{
+
+          const row =
+          payload.new as {
+            user_id:string;
+            is_typing:boolean;
+          };
+
+
+          if(
+            row.user_id !== userId
+          ){
+
+            if(row.is_typing){
+
+              setTypingUsers(
+                prev=>[
+                  ...new Set([
+                    ...prev,
+                    row.user_id
+                  ])
+                ]
+              );
+
+            }
+
+            else{
+
+              setTypingUsers(
+                prev =>
+                prev.filter(
+                  id =>
+                  id !== row.user_id
+                )
+              );
+
+            }
+
+          }
+
+        }
+
+      )
+
+      .subscribe();
 
 
 
-.on(
-"postgres_changes",
-{
-event:"*",
-schema:"public",
-table:"chat_typing_status",
-filter:
-`conversation_id=eq.${conversationId}`
-},
+    return ()=>{
 
-(payload)=>{
+      supabase
+      .removeChannel(channel);
+
+    };
 
 
-const row:any =
-payload.new;
-
-
-if(
-row.user_id !== userId
-){
-
-setTypingUsers([
-row.user_id
-]);
-
-}
-
-
-}
-
-)
-
-
-.subscribe();
+  },[
+    conversationId,
+    userId
+  ]);
 
 
 
-return ()=>{
+  return {
 
-supabase.removeChannel(channel);
+    typingUsers,
 
-};
+    isTyping:
+    typingUsers.length > 0
 
-
-},[
-conversationId,
-userId
-]);
-
-
-
-return {
-typingUsers,
-isTyping:
-typingUsers.length>0
-};
+  };
 
 }
