@@ -1,120 +1,122 @@
+"use client";
+
+
 import { supabase } from "@/lib/supabase";
-
-
-
-export type MessageType =
-  | "text"
-  | "image"
-  | "video"
-  | "audio"
-  | "voice"
-  | "document";
-
-
-
-export type MessageStatus =
-  | "sent"
-  | "delivered"
-  | "read";
-
-
-
-export interface ChatMessage {
-
-  id: string;
-
-  conversation_id: string;
-
-  sender_id: string;
-
-  content: string | null;
-
-  message_type: MessageType;
-
-  media_url?: string | null;
-
-  media_thumbnail_url?: string | null;
-
-  media_size?: number | null;
-
-  media_duration?: number | null;
-
-  status: MessageStatus;
-
-  delivered_at?: string | null;
-
-  read_at?: string | null;
-
-  created_at: string;
-
-  updated_at?: string | null;
-
-}
 
 
 
 export interface SendMessagePayload {
 
-  conversationId: string;
 
-  senderId: string;
+  conversationId:string;
 
-  content?: string;
 
-  messageType?: MessageType;
+  senderId:string;
 
-  mediaUrl?: string;
 
-  mediaThumbnailUrl?: string;
+  content:string;
 
-  mediaSize?: number;
 
-  mediaDuration?: number;
+  messageType?:
+  "text"
+  |
+  "image"
+  |
+  "video"
+  |
+  "audio"
+  |
+  "document";
+
+
+  mediaUrl?:string | null;
+
 
 }
 
 
 
 
+
+
 /**
- * Mengambil semua pesan dalam conversation
+ * GET MESSAGE LIST
  */
+
 export async function getMessages(
-  conversationId: string
-): Promise<ChatMessage[]> {
 
+  conversationId:string
 
-  if (!conversationId) {
-
-    throw new Error(
-      "Conversation ID required"
-    );
-
-  }
-
+){
 
 
   const {
+
     data,
-    error,
+
+    error
 
   } = await supabase
 
-    .from("chat_messages")
 
-    .select("*")
-
-    .eq(
-      "conversation_id",
-      conversationId
+    .from(
+      "chat_messages"
     )
 
+
+    .select(`
+
+      id,
+
+      conversation_id,
+
+      sender_id,
+
+      content,
+
+      message_type,
+
+      status,
+
+      created_at,
+
+      delivered_at,
+
+      read_at,
+
+      media_url,
+
+      media_thumbnail_url,
+
+      media_size,
+
+      media_duration
+
+    `)
+
+
+    .eq(
+
+      "conversation_id",
+
+      conversationId
+
+    )
+
+
     .order(
+
       "created_at",
+
       {
-        ascending: true
+
+        ascending:true
+
       }
+
     );
+
+
 
 
 
@@ -126,9 +128,9 @@ export async function getMessages(
 
 
 
-  return (
-    data ?? []
-  ) as ChatMessage[];
+
+  return data ?? [];
+
 
 }
 
@@ -137,134 +139,91 @@ export async function getMessages(
 
 
 
+
+
 /**
- * Mengirim pesan baru
+ * SEND MESSAGE
  */
+
 export async function sendMessage(
-payload: SendMessagePayload
-): Promise<ChatMessage>{
 
+payload:SendMessagePayload
 
-const {
-
-conversationId,
-
-senderId,
-
-content = "",
-
-messageType = "text",
-
-mediaUrl,
-
-mediaThumbnailUrl,
-
-mediaSize,
-
-mediaDuration
-
-} = payload;
-
-
-
-if(!conversationId){
-
- throw new Error(
-  "Conversation ID required"
- );
-
-}
-
-
-
-if(!senderId){
-
- throw new Error(
-  "Sender ID required"
- );
-
-}
-
-
-
-if(
-messageType==="text"
-&&
-!content.trim()
 ){
 
- throw new Error(
-  "Message cannot be empty"
- );
+
+  const {
+
+    data,
+
+    error
+
+  } = await supabase
+
+
+    .from(
+      "chat_messages"
+    )
+
+
+    .insert({
+
+      conversation_id:
+      payload.conversationId,
+
+
+      sender_id:
+      payload.senderId,
+
+
+      content:
+      payload.content,
+
+
+      message_type:
+      payload.messageType
+      ??
+      "text",
+
+
+      media_url:
+      payload.mediaUrl
+      ??
+      null,
+
+
+      status:
+      "sent"
+
+
+    })
+
+
+    .select()
+
+
+    .single();
+
+
+
+
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+
+
+
+  return data;
+
 
 }
 
-
-
-const {
-data,
-error
-
-}
-
-=
-await supabase
-
-.from(
-"chat_messages"
-)
-
-.insert({
-
-conversation_id:
-conversationId,
-
-sender_id:
-senderId,
-
-content:
-content.trim()
-|| null,
-
-message_type:
-messageType,
-
-media_url:
-mediaUrl ?? null,
-
-media_thumbnail_url:
-mediaThumbnailUrl ?? null,
-
-media_size:
-mediaSize ?? null,
-
-media_duration:
-mediaDuration ?? null,
-
-status:
-"sent"
-
-})
-
-.select()
-
-.single();
-
-
-
-
-if(error){
-
- throw error;
-
-}
-
-
-
-return data as ChatMessage;
-
-
-}
 
 
 
@@ -272,123 +231,71 @@ return data as ChatMessage;
 
 
 /**
- * Tandai pesan sudah diterima device
+ * MARK MESSAGE READ
  */
-export async function markDelivered(
-messageId:string
-){
 
-
-if(!messageId){
-
- throw new Error(
-  "Message ID required"
- );
-
-}
-
-
-
-const {
-error
-
-}
-
-=
-await supabase
-
-.from(
-"chat_messages"
-)
-
-.update({
-
-status:
-"delivered",
-
-delivered_at:
-new Date()
-.toISOString()
-
-})
-
-.eq(
-"id",
-messageId
-);
-
-
-
-if(error){
-
- throw error;
-
-}
-
-
-}
-
-
-
-
-
-
-/**
- * Tandai pesan sudah dibaca
- */
 export async function markRead(
+
 messageId:string
+
 ){
 
 
-if(!messageId){
+  const {
 
- throw new Error(
-  "Message ID required"
- );
+    error
+
+  } = await supabase
+
+
+    .from(
+      "chat_messages"
+    )
+
+
+    .update({
+
+      status:
+      "read",
+
+
+      read_at:
+
+      new Date()
+
+      .toISOString()
+
+
+    })
+
+
+    .eq(
+
+      "id",
+
+      messageId
+
+    );
+
+
+
+
+
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+
+  return true;
+
 
 }
 
-
-
-const {
-error
-
-}
-
-=
-await supabase
-
-.from(
-"chat_messages"
-)
-
-.update({
-
-status:
-"read",
-
-read_at:
-new Date()
-.toISOString()
-
-})
-
-.eq(
-"id",
-messageId
-);
-
-
-
-if(error){
-
- throw error;
-
-}
-
-
-}
 
 
 
@@ -396,49 +303,123 @@ if(error){
 
 
 /**
- * Hapus pesan
+ * MARK DELIVERED
  */
-export async function deleteMessage(
+
+export async function markDelivered(
+
 messageId:string
+
 ){
 
 
-if(!messageId){
+  const {
 
- throw new Error(
-  "Message ID required"
- );
+    error
+
+  } = await supabase
+
+
+    .from(
+      "chat_messages"
+    )
+
+
+    .update({
+
+      status:
+      "delivered",
+
+
+      delivered_at:
+
+      new Date()
+
+      .toISOString()
+
+
+    })
+
+
+    .eq(
+
+      "id",
+
+      messageId
+
+    );
+
+
+
+
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+
+  return true;
+
 
 }
 
 
 
-const {
-error
-
-}
-
-=
-await supabase
-
-.from(
-"chat_messages"
-)
-
-.delete()
-
-.eq(
-"id",
-messageId
-);
 
 
 
-if(error){
 
- throw error;
+/**
+ * DELETE MESSAGE
+ */
 
-}
+export async function deleteMessage(
+
+messageId:string
+
+){
+
+
+  const {
+
+    error
+
+  } = await supabase
+
+
+    .from(
+      "chat_messages"
+    )
+
+
+    .delete()
+
+
+    .eq(
+
+      "id",
+
+      messageId
+
+    );
+
+
+
+
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+  return true;
 
 
 }
