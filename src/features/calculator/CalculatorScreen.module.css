@@ -1,0 +1,170 @@
+.page {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: #000;
+}
+
+.frame {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: linear-gradient(160deg, #0b1424 0%, #060a14 75%);
+  padding: 24px 16px max(40px, calc(env(safe-area-inset-bottom) + 24px));
+  position: relative;
+}
+
+.screenLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #30d158;
+  box-shadow: 0 0 6px #30d158;
+}
+
+.screen {
+  position: relative;
+  margin: 0 0 24px;
+  padding: 18px 22px 16px;
+  border-radius: 28px;
+  background: linear-gradient(165deg, #16161a 0%, #08080a 60%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.screen::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -10%;
+  width: 120%;
+  height: 60%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.code {
+  position: relative;
+  z-index: 1;
+  text-align: right;
+  font-size: 12px;
+  min-height: 14px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.display {
+  position: relative;
+  z-index: 1;
+  padding: 8px 2px 4px;
+  text-align: right;
+  font-size: clamp(48px, 14vw, 80px);
+  font-weight: 300;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+  min-height: 90px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  word-break: break-all;
+  line-height: 1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.1s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.35),
+    0 8px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.25);
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  top: -35%;
+  left: -10%;
+  width: 120%;
+  height: 65%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 72%);
+  pointer-events: none;
+}
+
+.btn:active {
+  transform: translateY(3px) scale(0.96);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.3),
+    inset 0 3px 6px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.08);
+  filter: brightness(1.08);
+}
+
+.num {
+  background: radial-gradient(circle at 32% 28%, #474747, #262626 75%);
+  color: #fff;
+}
+
+.op {
+  background: radial-gradient(circle at 32% 28%, #ffb75e, #ff9500 75%);
+  color: #fff;
+}
+
+.func {
+  background: radial-gradient(circle at 32% 28%, #e8e8e8, #a5a5a5 75%);
+  color: #000;
+}
+
+.gate {
+  background: radial-gradient(circle at 32% 28%, #d98268, #b3644f 75%);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.zero {
+  grid-column: span 2;
+  aspect-ratio: auto;
+  border-radius: 9999px;
+  justify-content: center;
+}
