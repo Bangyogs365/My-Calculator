@@ -1,49 +1,87 @@
-"use client";
-
-
 import {
   supabase
 } from "@/lib/supabase";
 
 
 
-
-
 export type MediaType =
-
-"image"
-
-|
-
-"video"
-
-|
-
-"audio"
-
-|
-
-"document";
-
-
+  | "image"
+  | "video"
+  | "audio"
+  | "document";
 
 
 
 
 export interface UploadResult {
 
+  url: string;
 
-url:string;
+  path: string;
+
+  type: MediaType;
+
+  size: number;
+
+}
 
 
-path:string;
 
 
-type:MediaType;
 
 
-size:number;
+const BUCKET_NAME = "chat-media";
 
+
+
+
+
+
+
+function detectMediaType(
+  file: File
+): MediaType {
+
+
+  const mime = file.type;
+
+
+
+
+  if (
+    mime.startsWith("image/")
+  ) {
+
+    return "image";
+
+  }
+
+
+
+
+  if (
+    mime.startsWith("video/")
+  ) {
+
+    return "video";
+
+  }
+
+
+
+
+  if (
+    mime.startsWith("audio/")
+  ) {
+
+    return "audio";
+
+  }
+
+
+
+
+  return "document";
 
 }
 
@@ -55,64 +93,31 @@ size:number;
 
 
 
-const BUCKET = "chat-media";
+export function validateMediaSize(
+  file: File
+) {
+
+
+  const MAX_SIZE =
+    50 * 1024 * 1024;
 
 
 
 
+  if (
+    file.size > MAX_SIZE
+  ) {
+
+    throw new Error(
+      "Ukuran file maksimal 50MB"
+    );
+
+  }
 
 
 
 
-function detectType(
-
-file:File
-
-):MediaType{
-
-
-const mime = file.type;
-
-
-
-
-
-if(
-
-mime.startsWith("image/")
-
-)
-
-return "image";
-
-
-
-
-if(
-
-mime.startsWith("video/")
-
-)
-
-return "video";
-
-
-
-
-if(
-
-mime.startsWith("audio/")
-
-)
-
-return "audio";
-
-
-
-
-
-return "document";
-
+  return true;
 
 }
 
@@ -125,175 +130,141 @@ return "document";
 
 
 /**
- * Upload chat attachment
+ * Upload file chat ke Supabase Storage
  */
 
 export async function uploadChatMedia(
 
-file:File,
+  file: File,
 
-userId:string,
+  userId: string,
 
-conversationId:string
+  conversationId: string
 
-):Promise<UploadResult>{
+): Promise<UploadResult> {
 
 
 
+  validateMediaSize(file);
 
 
-const type = detectType(file);
 
 
+  const type =
+    detectMediaType(file);
 
 
 
 
-const extension =
+  const extension =
+    file.name
+      .split(".")
+      .pop();
 
-file.name
 
-.split(".")
 
-.pop();
 
+  const filename =
+    `${crypto.randomUUID()}.${extension}`;
 
 
 
 
 
+  const filePath =
+    `${conversationId}/${userId}/${filename}`;
 
-const filename =
 
-`${crypto.randomUUID()}.${extension}`;
 
 
 
 
 
+  const {
+    error: uploadError
 
+  } = await supabase
 
-const path =
+    .storage
 
-`${conversationId}/${userId}/${filename}`;
+    .from(BUCKET_NAME)
 
+    .upload(
 
+      filePath,
 
+      file,
 
+      {
 
+        cacheControl: "3600",
 
+        upsert: false
 
+      }
 
-const {
+    );
 
-error
 
-}
 
-=
 
-await supabase
 
-.storage
 
-.from(
+  if (
+    uploadError
+  ) {
 
-BUCKET
+    throw uploadError;
 
-)
+  }
 
-.upload(
 
-path,
 
-file,
 
-{
 
 
-cacheControl:
 
-"3600",
+  const {
 
+    data
 
-upsert:false
+  } = supabase
 
+    .storage
 
-}
+    .from(BUCKET_NAME)
 
-);
+    .getPublicUrl(
 
+      filePath
 
+    );
 
 
 
 
 
-if(error){
 
-throw error;
 
-}
+  return {
 
 
+    url:
+      data.publicUrl,
 
 
+    path:
+      filePath,
 
 
+    type,
 
-const {
 
-data
+    size:
+      file.size
 
-}
 
-=
-
-supabase
-
-.storage
-
-.from(
-
-BUCKET
-
-)
-
-.getPublicUrl(
-
-path
-
-);
-
-
-
-
-
-
-
-return {
-
-
-url:
-
-data.publicUrl,
-
-
-path,
-
-
-type,
-
-
-size:
-
-file.size
-
-
-};
-
-
-
+  };
 
 
 }
@@ -307,61 +278,51 @@ file.size
 
 
 /**
- * Delete media
+ * Hapus media
  */
-
 
 export async function deleteChatMedia(
 
-path:string
+  path: string
 
-){
+) {
 
 
 
-const {
+  const {
 
-error
+    error
 
-}
+  } = await supabase
 
-=
+    .storage
 
-await supabase
+    .from(BUCKET_NAME)
 
-.storage
+    .remove([
 
-.from(
+      path
 
-BUCKET
-
-)
-
-.remove(
-
-[
-
-path
-
-]
-
-);
+    ]);
 
 
 
 
 
 
-if(error){
+  if (
+    error
+  ) {
 
-throw error;
+    throw error;
 
-}
-
-
+  }
 
 
-return true;
+
+
+
+  return true;
 
 
 }
@@ -375,471 +336,35 @@ return true;
 
 
 /**
- * Validate file size
+ * Ambil URL public media
  */
 
+export function getMediaUrl(
 
-export function validateMediaSize(
+  path: string
 
-file:File
+) {
 
-){
 
+  const {
 
+    data
 
-const maxSize =
+  } = supabase
 
-50 *
+    .storage
 
-1024 *
+    .from(BUCKET_NAME)
 
-1024;
+    .getPublicUrl(
 
+      path
 
+    );
 
 
 
-if(
 
-file.size > maxSize
-
-){
-
-
-throw new Error(
-
-"File maksimal 50MB"
-
-);
-
-
-}
-
-
-
-return true;
-
-
-}"use client";
-
-
-import {
-  supabase
-} from "@/lib/supabase";
-
-
-
-
-
-export type MediaType =
-
-"image"
-
-|
-
-"video"
-
-|
-
-"audio"
-
-|
-
-"document";
-
-
-
-
-
-
-export interface UploadResult {
-
-
-url:string;
-
-
-path:string;
-
-
-type:MediaType;
-
-
-size:number;
-
-
-}
-
-
-
-
-
-
-
-
-
-const BUCKET = "chat-media";
-
-
-
-
-
-
-
-
-function detectType(
-
-file:File
-
-):MediaType{
-
-
-const mime = file.type;
-
-
-
-
-
-if(
-
-mime.startsWith("image/")
-
-)
-
-return "image";
-
-
-
-
-if(
-
-mime.startsWith("video/")
-
-)
-
-return "video";
-
-
-
-
-if(
-
-mime.startsWith("audio/")
-
-)
-
-return "audio";
-
-
-
-
-
-return "document";
-
-
-}
-
-
-
-
-
-
-
-
-
-/**
- * Upload chat attachment
- */
-
-export async function uploadChatMedia(
-
-file:File,
-
-userId:string,
-
-conversationId:string
-
-):Promise<UploadResult>{
-
-
-
-
-
-const type = detectType(file);
-
-
-
-
-
-
-const extension =
-
-file.name
-
-.split(".")
-
-.pop();
-
-
-
-
-
-
-
-const filename =
-
-`${crypto.randomUUID()}.${extension}`;
-
-
-
-
-
-
-
-const path =
-
-`${conversationId}/${userId}/${filename}`;
-
-
-
-
-
-
-
-
-const {
-
-error
-
-}
-
-=
-
-await supabase
-
-.storage
-
-.from(
-
-BUCKET
-
-)
-
-.upload(
-
-path,
-
-file,
-
-{
-
-
-cacheControl:
-
-"3600",
-
-
-upsert:false
-
-
-}
-
-);
-
-
-
-
-
-
-
-if(error){
-
-throw error;
-
-}
-
-
-
-
-
-
-
-const {
-
-data
-
-}
-
-=
-
-supabase
-
-.storage
-
-.from(
-
-BUCKET
-
-)
-
-.getPublicUrl(
-
-path
-
-);
-
-
-
-
-
-
-
-return {
-
-
-url:
-
-data.publicUrl,
-
-
-path,
-
-
-type,
-
-
-size:
-
-file.size
-
-
-};
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-/**
- * Delete media
- */
-
-
-export async function deleteChatMedia(
-
-path:string
-
-){
-
-
-
-const {
-
-error
-
-}
-
-=
-
-await supabase
-
-.storage
-
-.from(
-
-BUCKET
-
-)
-
-.remove(
-
-[
-
-path
-
-]
-
-);
-
-
-
-
-
-
-if(error){
-
-throw error;
-
-}
-
-
-
-
-return true;
-
-
-}
-
-
-
-
-
-
-
-
-
-/**
- * Validate file size
- */
-
-
-export function validateMediaSize(
-
-file:File
-
-){
-
-
-
-const maxSize =
-
-50 *
-
-1024 *
-
-1024;
-
-
-
-
-
-if(
-
-file.size > maxSize
-
-){
-
-
-throw new Error(
-
-"File maksimal 50MB"
-
-);
-
-
-}
-
-
-
-return true;
-
+  return data.publicUrl;
 
 }
