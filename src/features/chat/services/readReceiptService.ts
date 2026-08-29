@@ -6,37 +6,44 @@ from "@/lib/supabase";
 
 
 export async function markMessageRead(
-messageId:string,
-userId:string
+messageId:string
 ){
 
 
 const {
 error
+
 }
 =
 await supabase
+
 .from(
-"message_read_receipts"
+"chat_messages"
 )
-.upsert({
 
-message_id:
-messageId,
+.update({
 
-user_id:
-userId,
+status:
+"read",
 
 read_at:
 new Date()
 .toISOString()
 
-});
+})
+
+.eq(
+"id",
+messageId
+);
 
 
 
-if(error)
+if(error){
+
 throw error;
+
+}
 
 
 }
