@@ -12,28 +12,64 @@ import {
 } from "@/lib/supabase";
 
 
+import {
+  getUserConversations
+} from "../services/conversationService";
+
+
 
 
 
 export interface ChatListItem {
 
 
-  conversation_id:string;
+id:string;
 
 
-  partner_id:string | null;
+title:string | null;
 
 
-  last_message:string;
+type:string;
 
 
-  last_status:string;
+partner: {
 
 
-  last_time:string;
+id:string;
 
 
-  unread:number;
+display_name:string;
+
+
+avatar_url:string|null;
+
+
+}
+|null;
+
+
+
+last_message:
+
+
+{
+
+content:string;
+
+
+status:string;
+
+
+created_at:string;
+
+
+}
+
+|null;
+
+
+
+unread:number;
 
 
 }
@@ -43,365 +79,299 @@ export interface ChatListItem {
 
 
 
+
 export function useChatList(
-  userId?:string
+
+userId?:string
+
 ){
 
 
-  const [
 
-    chats,
+const [
 
-    setChats
+data,
 
-  ] = useState<ChatListItem[]>([]);
+setData
 
+]
 
+=
 
-  const [
+useState<ChatListItem[]>([]);
 
-    loading,
 
-    setLoading
 
-  ] = useState(true);
 
+const [
 
+loading,
 
-  const [
+setLoading
 
-    error,
+]
 
-    setError
+=
 
-  ] = useState<string|null>(null);
+useState(true);
 
 
 
 
+const [
 
+error,
 
+setError
 
+]
 
-  async function loadChats(){
+=
 
+useState<string|null>(null);
 
 
-    if(!userId)
-    return;
 
 
 
 
-    try{
 
 
-      setLoading(true);
 
+async function load(){
 
 
-      const {
 
-        data,
+if(!userId)
 
-        error
+return;
 
-      }
 
-      =
 
-      await supabase
+try{
 
-      .from(
-        "chat_messages"
-      )
 
-      .select(
-`
-id,
-conversation_id,
-sender_id,
-receiver_id,
-content,
-status,
-created_at
-`
-      )
+setLoading(true);
 
-      .or(
-`
-sender_id.eq.${userId},
-receiver_id.eq.${userId}
-`
-      )
 
-      .order(
-        "created_at",
-        {
-          ascending:false
-        }
-      );
 
+const result =
 
+await getUserConversations(
 
+userId
 
+);
 
-      if(error)
-      throw error;
 
 
+setData(
 
+result as ChatListItem[]
 
+);
 
 
-      const grouped =
-      new Map<string,ChatListItem>();
 
+}
 
+catch(err:any){
 
 
+console.error(err);
 
-      data?.forEach(
-      (
-        message:any
-      )=>{
 
+setError(
 
+err.message ??
 
-        const id =
-        message.conversation_id;
+"Failed load conversations"
 
+);
 
 
-        if(!id)
-        return;
+}
 
+finally{
 
 
+setLoading(false);
 
 
-        const partner =
+}
 
-        message.sender_id === userId
 
-        ?
 
-        message.receiver_id
+}
 
-        :
 
-        message.sender_id;
 
 
 
 
 
-        if(
-          !grouped.has(id)
-        ){
 
 
-          grouped.set(
+useEffect(()=>{
 
-            id,
 
-            {
+if(!userId)
 
-              conversation_id:id,
+return;
 
-              partner_id:partner,
 
-              last_message:
-              message.content,
 
-              last_status:
-              message.status,
+load();
 
-              last_time:
-              message.created_at,
 
-              unread:
 
-              message.sender_id !== userId
 
-              &&
 
-              message.status !== "read"
 
-              ?
+/*
+ Realtime conversation update
 
-              1
+ Trigger dari chat_messages
+*/
 
-              :
 
-              0
+const channel =
 
+supabase
 
-            }
+.channel(
 
-          );
+`chat-list-${userId}`
 
+)
 
-        }
 
 
 
 
-      });
 
 
+.on(
 
+"postgres_changes",
 
+{
 
-      setChats(
 
-        Array.from(
-          grouped.values()
-        )
+event:"INSERT",
 
-      );
 
+schema:"public",
 
 
+table:"chat_messages"
 
-    }
 
-    catch(err:any){
+},
 
 
-      console.error(
-        err
-      );
+()=>{
 
 
-      setError(
-        err.message
-        ??
-        "Failed load chats"
-      );
+load();
 
 
-    }
+}
 
-    finally{
 
+)
 
-      setLoading(false);
 
 
-    }
 
 
 
-  }
 
+.on(
 
+"postgres_changes",
 
+{
 
 
+event:"UPDATE",
 
 
+schema:"public",
 
 
-  useEffect(()=>{
+table:"chat_messages"
 
 
-    if(!userId)
-    return;
+},
 
 
+()=>{
 
-    loadChats();
 
+load();
 
 
+}
 
 
+)
 
-    const channel =
 
-    supabase
 
-    .channel(
-      `chat-list-${userId}`
-    )
 
 
 
-    .on(
 
-      "postgres_changes",
+.subscribe();
 
-      {
 
-        event:"*",
 
-        schema:"public",
 
-        table:"chat_messages"
 
-      },
 
 
-      ()=>{
+return ()=>{
 
-        loadChats();
 
-      }
+supabase
 
-    )
+.removeChannel(
 
+channel
 
+);
 
-    .subscribe();
 
+};
 
 
 
+},[userId]);
 
 
 
-    return ()=>{
 
 
-      supabase
 
-      .removeChannel(
-        channel
-      );
 
 
-    };
+return {
 
 
+data,
 
 
-  },[
-    userId
-  ]);
+loading,
 
 
+error,
 
 
+refresh:load
 
 
-
-  return {
-
-
-    data:chats,
-
-
-    loading,
-
-
-    error,
-
-
-    refresh:loadChats
-
-
-  };
+};
 
 
 }
