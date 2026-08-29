@@ -52,8 +52,6 @@ export default function CalculatorScreen() {
       const deviceId = getDeviceId();
       const pinHash = await hashPin(code);
 
-      // Cek dulu ke backend: PIN ini milik profil manapun (admin/member),
-      // bekerja lintas-device, tidak bergantung sesi lokal.
       const { data: matches, error: rpcError } = await supabase.rpc(
         "verify_calculator_pin",
         { p_pin_hash: pinHash, p_device_id: deviceId },
@@ -68,8 +66,6 @@ export default function CalculatorScreen() {
         return;
       }
 
-      // Tidak ada profil manapun dengan PIN ini. Kalau device ini sudah
-      // pernah setup sebelumnya, anggap ini percobaan PIN yang salah.
       const savedSession = getSession();
       if (savedSession) {
         const profile = await getProfileById(savedSession.profileId);
@@ -85,7 +81,6 @@ export default function CalculatorScreen() {
         clearSession();
       }
 
-      // Benar-benar belum ada profil (device baru & PIN tidak dikenal).
       setShowProfileSetup(true);
     } catch (error) {
       setGateError(
@@ -98,7 +93,28 @@ export default function CalculatorScreen() {
     }
   }, [router]);
 
-  usePinGateDetector(inputHistory, handleGateTrigger);
+  usePinGateDetector(handleGateTrigger);
+
+  // Dipanggil hanya oleh tombol "+=". Kode 3 digit dikirim langsung
+  // lewat CustomEvent.detail, bukan dibaca ulang dari inputHistory
+  // di dalam listener — menghindari race condition antara setState
+  // (async) dan dispatchEvent (sync).
+  const triggerGate = useCallback(() => {
+    const lastThree = inputHistory.slice(-3);
+
+    if (!/^\d{3}$/.test(lastThree)) {
+      setGateError("Masukkan tepat 3 digit angka sebelum menekan +=.");
+      return;
+    }
+
+    setGateError("");
+
+    window.dispatchEvent(
+      new CustomEvent("calculator-trigger", {
+        detail: lastThree,
+      }),
+    );
+  }, [inputHistory]);
 
   async function saveProfile(data: {
     name: string;
@@ -286,10 +302,7 @@ export default function CalculatorScreen() {
           <CalcButton className={styles.num} onClick={() => press(".")}>
             .
           </CalcButton>
-          <CalcButton
-            className={styles.gate}
-            onClick={() => window.dispatchEvent(new Event("calculator-trigger"))}
-          >
+          <CalcButton className={styles.gate} onClick={triggerGate}>
             +=
           </CalcButton>
         </div>
