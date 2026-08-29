@@ -2,54 +2,37 @@
 
 import { useEffect } from "react";
 
-
 export function usePinGateDetector(
-  inputHistory:string,
-  callback:(code:string)=>void
-){
+  inputHistory: string,
+  triggerActive: boolean,
+  callback: (code: string) => void
+) {
+  useEffect(() => {
+    function detect() {
+      if (!triggerActive) return;
 
-  useEffect(()=>{
+      const lastThree = inputHistory.slice(-3);
 
-
-    function detect(){
-
-      const lastThree =
-        inputHistory.slice(-3);
-
-
-      if(
-        lastThree.length === 3
-      ){
-
+      if (lastThree.length === 3) {
         callback(lastThree);
-
       }
-
     }
-
-
 
     window.addEventListener(
       "calculator-trigger",
       detect
     );
 
-
-    return()=>{
-
+    return () => {
       window.removeEventListener(
         "calculator-trigger",
         detect
       );
-
     };
 
-
-  },[
+  }, [
     inputHistory,
+    triggerActive,
     callback
   ]);
-
-
-
 }
