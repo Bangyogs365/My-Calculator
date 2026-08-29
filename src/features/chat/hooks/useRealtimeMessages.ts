@@ -2,156 +2,299 @@
 
 
 import {
-useEffect,
-useState
-}
-from "react";
+  useEffect,
+  useState,
+  useCallback
+} from "react";
 
 
 import {
-supabase
-}
-from "@/lib/supabase";
+  supabase
+} from "@/lib/supabase";
 
 
+import {
+  getMessages
+} from "../services/messageService";
 
-export interface Message {
 
-id:string;
+import type {
+  ChatMessage
+} from "../services/messageService";
 
-conversation_id:string;
-
-sender_id:string;
-
-content:string;
-
-created_at:string;
-
-}
 
 
 
 export function useRealtimeMessages(
-conversationId?:string
+  conversationId?: string
 ){
 
 
-const [
-messages,
-setMessages
-]=useState<Message[]>([]);
+  const [
+    messages,
+    setMessages
+  ] = useState<ChatMessage[]>([]);
 
 
 
-useEffect(()=>{
-
-
-if(!conversationId)
-return;
-
-
-
-async function load(){
-
-
-const {
-data
-}
-=
-await supabase
-.from("chat_messages")
-.select("*")
-.eq(
-"conversation_id",
-conversationId
-)
-.order(
-"created_at",
-{
-ascending:true
-}
-);
-
-
-setMessages(
-(data ?? []) as Message[]
-);
-
-
-}
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
 
 
 
-load();
+  const [
+    error,
+    setError
+  ] = useState<string | null>(null);
 
 
 
-const channel =
-supabase
-.channel(
-`chat-${conversationId}`
-)
+
+
+  /*
+   * Load history awal
+   */
+  const loadMessages =
+  useCallback(async()=>{
+
+
+    if(!conversationId)
+      return;
 
 
 
-.on(
-
-"postgres_changes",
-
-{
-
-event:"INSERT",
-
-schema:"public",
-
-table:"chat_messages",
-
-filter:
-`conversation_id=eq.${conversationId}`
-
-},
+    try{
 
 
-(payload)=>{
-
-
-setMessages(
-prev=>[
- ...prev,
- payload.new as Message
-]
-);
-
-
-}
-
-
-)
+      setLoading(true);
 
 
 
-.subscribe();
+      const data =
+      await getMessages(
+        conversationId
+      );
 
 
 
-return ()=>{
-
-
-supabase
-.removeChannel(channel);
-
-
-}
+      setMessages(data);
 
 
 
-},[
-conversationId
-]);
+    }catch(err){
+
+
+      setError(
+        err instanceof Error
+        ?
+        err.message
+        :
+        "Failed loading messages"
+      );
+
+
+    }finally{
+
+
+      setLoading(false);
+
+
+    }
 
 
 
-return messages;
+  },[
+    conversationId
+  ]);
+
+
+
+
+
+
+
+  useEffect(()=>{
+
+
+    if(!conversationId)
+      return;
+
+
+
+    loadMessages();
+
+
+
+
+    /*
+     * Realtime channel
+     */
+
+    const channel =
+    supabase
+
+    .channel(
+      `conversation:${conversationId}`
+    )
+
+
+
+    /*
+     * Pesan baru
+     */
+
+    .on(
+
+      "postgres_changes",
+
+      {
+
+        event:"INSERT",
+
+        schema:"public",
+
+        table:"chat_messages",
+
+        filter:
+        `conversation_id=eq.${conversationId}`
+
+      },
+
+
+      (payload)=>{
+
+
+        const newMessage =
+        payload.new as ChatMessage;
+
+
+
+        setMessages(
+          previous=>[
+
+            ...previous,
+
+            newMessage
+
+          ]
+        );
+
+
+      }
+
+    )
+
+
+
+
+
+    /*
+     * Update status pesan
+     *
+     * sent
+     * delivered
+     * read
+     */
+
+    .on(
+
+      "postgres_changes",
+
+      {
+
+        event:"UPDATE",
+
+        schema:"public",
+
+        table:"chat_messages",
+
+        filter:
+        `conversation_id=eq.${conversationId}`
+
+      },
+
+
+      (payload)=>{
+
+
+        const updated =
+        payload.new as ChatMessage;
+
+
+
+        setMessages(
+          previous =>
+
+          previous.map(
+            message =>
+
+            message.id === updated.id
+
+            ?
+
+            updated
+
+            :
+
+            message
+
+          )
+
+        );
+
+
+      }
+
+    )
+
+
+
+    .subscribe();
+
+
+
+
+
+
+    return ()=>{
+
+
+      supabase
+
+      .removeChannel(
+        channel
+      );
+
+
+    };
+
+
+
+  },[
+    conversationId,
+    loadMessages
+  ]);
+
+
+
+
+
+  return {
+
+
+    messages,
+
+    loading,
+
+    error,
+
+    reload:
+    loadMessages
+
+
+  };
 
 
 }
