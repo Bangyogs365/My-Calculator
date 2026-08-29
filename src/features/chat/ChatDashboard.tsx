@@ -3,191 +3,17 @@
 
 import Link from "next/link";
 
-import {
-  useAuth
-} from "@/features/auth/AuthContext";
 
 
-import {
-  useChatList
-} from "./hooks/useChatList";
-
-
-
-export default function ChatDashboard() {
-
-
-  const {
-    userId,
-    loading: authLoading,
-    accessVerified,
-
-  } = useAuth();
-
-
-
-  const {
-    data: chats,
-    loading,
-    error,
-
-  } = useChatList(
-    userId ?? undefined
-  );
-
-
-
-  /*
-   * Auth masih memeriksa session
-   */
-  if(authLoading){
-
-    return (
-
-      <main
-        className="
-        min-h-screen
-        bg-black
-        text-white
-        flex
-        items-center
-        justify-center
-        "
-      >
-
-        Checking secure access...
-
-      </main>
-
-    );
-
-  }
-
-
-
-  /*
-   * User belum melewati kalkulator PIN
-   */
-  if(!accessVerified){
-
-    return (
-
-      <main
-        className="
-        min-h-screen
-        bg-black
-        text-white
-        flex
-        flex-col
-        items-center
-        justify-center
-        gap-3
-        "
-      >
-
-        <h1
-          className="
-          text-xl
-          font-bold
-          text-blue-500
-          "
-        >
-
-          Sky-Secure Chat
-
-        </h1>
-
-
-        <p
-          className="
-          text-gray-400
-          text-sm
-          text-center
-          px-6
-          "
-        >
-
-          Akses chat terkunci.
-          Silakan buka melalui kalkulator.
-
-        </p>
-
-
-      </main>
-
-    );
-
-  }
-
-
-
-
-  /*
-   * Loading conversation
-   */
-  if(loading){
-
-    return (
-
-      <main
-        className="
-        min-h-screen
-        bg-black
-        text-white
-        flex
-        items-center
-        justify-center
-        "
-      >
-
-        Loading chats...
-
-      </main>
-
-    );
-
-  }
-
-
-
-  /*
-   * Error Supabase
-   */
-  if(error){
-
-    return (
-
-      <main
-        className="
-        min-h-screen
-        bg-black
-        text-red-400
-        p-6
-        "
-      >
-
-        Failed:
-        {" "}
-        {error}
-
-      </main>
-
-    );
-
-  }
-
-
+export default function ChatDashboard(){
 
 
   return (
 
-    <main
+    <div
       className="
       min-h-screen
-      bg-black
-      text-white
-      px-4
-      py-5
+      bg-transparent
       "
     >
 
@@ -196,68 +22,59 @@ export default function ChatDashboard() {
 
       <header
         className="
-        flex
-        items-center
-        justify-between
-        mb-6
+        sky-header
         "
       >
 
-        <div>
 
-          <h1
+        <div
+          className="
+          sky-brand
+          "
+        >
+
+          <span
             className="
-            text-2xl
-            font-bold
-            tracking-tight
+            primary
             "
           >
+            Sky-Secure
+          </span>
 
-            <span
-              className="
-              text-blue-500
-              "
-            >
-              Sky-Secure
-            </span>
+          {" "}
 
-            {" "}
-
+          <span
+            className="
+            secondary
+            "
+          >
             Chat
+          </span>
 
-          </h1>
-
-
-          <p
-            className="
-            text-xs
-            text-gray-500
-            mt-1
-            "
-          >
-
-            Private Family Communication
-
-          </p>
 
         </div>
 
 
 
-        <button
+        <div
           className="
-          w-10
-          h-10
-          rounded-full
-          bg-zinc-900
-          border
-          border-zinc-800
+          flex
+          gap-5
+          text-gray-400
           "
         >
 
-          ⚙
+          <button>
+            🔍
+          </button>
 
-        </button>
+
+          <button>
+            ⎋
+          </button>
+
+
+        </div>
 
 
       </header>
@@ -265,141 +82,144 @@ export default function ChatDashboard() {
 
 
 
-      {/* CHAT LIST */}
 
-      <section
+      {/* TAB MENU */}
+
+      <nav
         className="
-        space-y-3
+        px-5
+        pt-5
+        flex
+        gap-8
+        text-sm
+        border-b
+        border-white/10
         "
       >
 
 
-      {
-        chats.length === 0
+        <button
+          className="
+          text-blue-500
+          pb-3
+          border-b-2
+          border-blue-500
+          "
+        >
+          Kontak
+        </button>
 
-        ?
 
-        (
 
-          <div
+        <button
+          className="
+          text-gray-500
+          pb-3
+          "
+        >
+          Ruang Publik
+        </button>
+
+
+
+        <button
+          className="
+          text-gray-500
+          pb-3
+          "
+        >
+          Project Area
+        </button>
+
+
+
+      </nav>
+
+
+
+
+
+
+      {/* CONTENT */}
+
+      <section
+        className="
+        px-5
+        py-6
+        space-y-4
+        "
+      >
+
+
+        <div
+          className="
+          sky-card
+          p-5
+          fade-in
+          "
+        >
+
+
+          <h2
             className="
-            rounded-xl
-            bg-zinc-900
-            border
-            border-zinc-800
-            p-5
+            font-bold
+            text-lg
+            "
+          >
+
+            Secure Communication
+
+          </h2>
+
+
+
+          <p
+            className="
+            text-sm
             text-gray-400
+            mt-2
+            "
+          >
+
+            Belum ada percakapan aktif.
+
+          </p>
+
+
+        </div>
+
+
+
+        {/* Conversation container */}
+
+        <div
+          className="
+          sky-card
+          p-5
+          "
+        >
+
+
+          <p
+            className="
+            text-gray-500
+            text-sm
             text-center
             "
           >
 
-            Belum ada percakapan
+            Conversation list akan terhubung ke Supabase.
 
-          </div>
-
-        )
+          </p>
 
 
-        :
+        </div>
 
-
-        chats.map((chat)=>(
-
-
-          <Link
-
-            key={
-              chat.id
-            }
-
-            href={
-              `/chat/${chat.id}`
-            }
-
-
-            className="
-            block
-            rounded-xl
-            bg-zinc-900
-            border
-            border-zinc-800
-            p-4
-            active:scale-[0.98]
-            transition
-            "
-
-          >
-
-
-            <div
-              className="
-              flex
-              justify-between
-              "
-            >
-
-              <h2
-                className="
-                font-semibold
-                "
-              >
-
-                {
-                  chat.title
-                  ??
-                  "Conversation"
-                }
-
-
-              </h2>
-
-
-
-              <span
-                className="
-                text-xs
-                text-gray-500
-                "
-              >
-
-                {chat.type}
-
-              </span>
-
-
-            </div>
-
-
-
-            <p
-              className="
-              text-sm
-              text-gray-400
-              mt-2
-              truncate
-              "
-            >
-
-              {
-                chat.last_message?.content
-                ??
-                "Belum ada pesan"
-              }
-
-
-            </p>
-
-
-
-          </Link>
-
-
-        ))
-
-      }
 
 
       </section>
+
+
 
 
 
@@ -408,61 +228,49 @@ export default function ChatDashboard() {
 
       <nav
         className="
-        fixed
-        bottom-0
-        left-0
-        right-0
-        bg-black/90
-        border-t
-        border-zinc-800
-        p-4
-        flex
-        justify-around
+        sky-bottom-nav
         "
       >
 
-        <span
+
+        <button
           className="
-          text-blue-500
-          text-sm
+          active
           "
         >
-
           Chat
+        </button>
 
-        </span>
 
 
-        <span
+        <button
           className="
           text-gray-500
-          text-sm
           "
         >
-
           Contact
+        </button>
 
-        </span>
 
 
-        <span
+        <button
           className="
           text-gray-500
-          text-sm
           "
         >
-
           Profile
+        </button>
 
-        </span>
 
 
       </nav>
 
 
 
-    </main>
+
+    </div>
 
   );
+
 
 }
