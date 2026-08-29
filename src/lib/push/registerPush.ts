@@ -1,0 +1,2 @@
+// Push registration scaffold.
+export {};

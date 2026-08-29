@@ -1,0 +1,2 @@
+// Presence store scaffold.
+export {};

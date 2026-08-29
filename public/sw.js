@@ -1,0 +1,1 @@
+// Service worker scaffold. Runtime behavior will be added in a later task.

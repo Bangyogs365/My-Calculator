@@ -1,0 +1,2 @@
+// Unread store scaffold.
+export {};
