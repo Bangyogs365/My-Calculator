@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 
 /**
  * Membungkus semua halaman /dashboard/*. Kalau gerbang kalkulator belum
@@ -11,7 +12,7 @@ import { useRouter } from "next/navigation";
  * sessionStorage (bukan localStorage) sengaja dipakai supaya gerbang
  * otomatis tertutup lagi begitu tab/app ditutup.
  */
-export default function DashboardGuard({ children }: { children: React.ReactNode }) {
+export default function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
 
