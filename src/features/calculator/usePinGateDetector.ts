@@ -3,19 +3,21 @@
 import { useEffect } from "react";
 
 export function usePinGateDetector(
-  inputHistory: string,
-  triggerActive: boolean,
   callback: (code: string) => void
 ) {
   useEffect(() => {
-    function detect() {
-      if (!triggerActive) return;
 
-      const lastThree = inputHistory.slice(-3);
+    function detect(event: Event) {
 
-      if (lastThree.length === 3) {
-        callback(lastThree);
+      const customEvent =
+        event as CustomEvent<string>;
+
+      const code = customEvent.detail;
+
+      if (/^\d{3}$/.test(code)) {
+        callback(code);
       }
+
     }
 
     window.addEventListener(
@@ -30,9 +32,5 @@ export function usePinGateDetector(
       );
     };
 
-  }, [
-    inputHistory,
-    triggerActive,
-    callback
-  ]);
+  }, [callback]);
 }
