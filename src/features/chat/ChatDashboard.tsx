@@ -1,7 +1,16 @@
 "use client";
 
 
-import Link from "next/link";
+import {
+  useEffect,
+  useRef,
+  useState
+} from "react";
+
+
+import {
+  useParams
+} from "next/navigation";
 
 
 import {
@@ -10,623 +19,798 @@ import {
 
 
 import {
-  useChatList
-} from "./hooks/useChatList";
+  useRealtimeMessages
+} from "./hooks/useRealtimeMessages";
 
 
+import {
+  useTypingStatus
+} from "./hooks/useTypingStatus";
 
 
-export default function ChatDashboard(){
+import {
+  usePresence
+} from "./hooks/usePresence";
 
 
+import {
+  sendMessage,
+  markRead
+} from "./services/messageService";
 
-  const {
 
-    userId
+import {
+  uploadChatMedia
+} from "./services/mediaService";
 
-  } = useAuth();
 
 
 
-  const {
 
-    data: chats,
 
-    loading,
 
-    error
 
-  } = useChatList(
-    userId ?? undefined
-  );
+export default function ChatRoom(){
 
 
+const params = useParams();
 
 
+const conversationId =
+params.id as string;
 
 
-  return (
 
-    <div
-      className="
-      sky-page
-      min-h-screen
-      pb-24
-      "
-    >
 
+const {
+userId
+}
+=
+useAuth();
 
 
 
-      {/* HEADER */}
 
-      <header
-        className="
-        sky-header
-        "
-      >
 
-        <div
-          className="
-          sky-brand
-          "
-        >
+const {
 
-          <span
-            className="
-            primary
-            "
-          >
-            Sky-Secure
-          </span>
+messages,
 
-          {" "}
+loading
 
-          <span
-            className="
-            secondary
-            "
-          >
-            Chat
-          </span>
+}
+=
+useRealtimeMessages(
 
+conversationId
 
-        </div>
+);
 
 
 
-        <div
-          className="
-          flex
-          gap-5
-          text-gray-400
-          "
-        >
 
-          <button>
-            🔍
-          </button>
 
 
-          <button>
-            ⎋
-          </button>
+const {
 
+typingUsers,
 
-        </div>
+setTyping
 
+}
+=
+useTypingStatus(
 
-      </header>
+conversationId,
 
+userId ?? undefined
 
+);
 
 
 
 
 
 
-      {/* TAB */}
 
-      <div
-        className="
-        px-5
-        pt-5
-        flex
-        gap-8
-        border-b
-        border-white/10
-        "
-      >
+const {
 
+onlineUsers
 
-        <button
-          className="
-          text-blue-500
-          pb-3
-          border-b-2
-          border-blue-500
-          "
-        >
+}
+=
+usePresence(
 
-          Kontak
+userId ?? undefined
 
-        </button>
+);
 
 
 
-        <button
-          className="
-          text-gray-500
-          pb-3
-          "
-        >
 
-          Ruang Publik
 
-        </button>
 
 
+const [text,setText]
+=
+useState("");
 
 
-        <button
-          className="
-          text-gray-500
-          pb-3
-          "
-        >
 
-          Project Area
+const [uploading,setUploading]
+=
+useState(false);
 
-        </button>
 
 
 
-      </div>
 
+const bottomRef =
+useRef<HTMLDivElement>(null);
 
 
 
 
 
 
-      {/* CONTENT */}
 
-      <section
-        className="
-        px-5
-        py-6
-        space-y-4
-        "
-      >
 
 
+useEffect(()=>{
 
 
-      {
+bottomRef.current?.scrollIntoView({
 
-        loading
+behavior:"smooth"
 
-        &&
+});
 
-        (
 
-          <div
-            className="
-            sky-card
-            p-5
-            text-center
-            text-gray-400
-            "
-          >
+},[messages]);
 
-            Loading secure chat...
 
-          </div>
 
-        )
 
-      }
 
 
 
 
 
 
-      {
+async function handleSend(){
 
-        error
 
-        &&
+if(
 
-        (
+!text.trim()
 
-          <div
-            className="
-            sky-card
-            p-5
-            text-red-400
-            "
-          >
+||
 
-            {error}
+!userId
 
-          </div>
+)
 
-        )
+return;
 
-      }
 
 
 
 
+await sendMessage({
 
+conversationId,
 
+senderId:userId,
 
+content:text,
 
-      {
+messageType:"text"
 
-        !loading
-        &&
-        chats.length === 0
+});
 
-        &&
 
-        (
 
-          <div
-            className="
-            sky-card
-            p-6
-            text-center
-            "
-          >
 
-            <h2
-              className="
-              font-bold
-              "
-            >
+setText("");
 
-              Secure Communication
 
-            </h2>
 
+setTyping(false);
 
-            <p
-              className="
-              text-sm
-              text-gray-500
-              mt-2
-              "
-            >
 
-              Belum ada percakapan.
+}
 
-            </p>
 
 
-          </div>
 
-        )
 
-      }
 
 
 
 
+async function handleFile(
 
+e:React.ChangeEvent<HTMLInputElement>
 
+){
 
 
-      {
+const file =
+e.target.files?.[0];
 
-        chats.map(
 
-          chat => (
 
-            <Link
+if(
 
-              key={
-                chat.id
-              }
+!file
 
-              href={
-                `/chat/${chat.id}`
-              }
+||
 
+!userId
 
-              className="
-              sky-card
-              p-4
-              flex
-              items-center
-              gap-4
-              block
-              transition
-              hover:scale-[1.01]
-              "
+)
 
-            >
+return;
 
 
 
 
 
-              {/* AVATAR */}
+try{
 
-              <div
-                className="
-                w-12
-                h-12
-                rounded-full
-                bg-blue-600/20
-                flex
-                items-center
-                justify-center
-                text-blue-400
-                font-bold
-                "
-              >
 
-                {
+setUploading(true);
 
-                  chat.title
-                  ?.charAt(0)
-                  ?.toUpperCase()
 
-                  ??
 
-                  "S"
+const media =
 
-                }
+await uploadChatMedia(
 
+file,
 
-              </div>
+userId,
 
+conversationId
 
+);
 
 
 
 
 
-              {/* INFO */}
 
-              <div
-                className="
-                flex-1
-                min-w-0
-                "
-              >
+await sendMessage({
 
+conversationId,
 
-                <div
-                  className="
-                  flex
-                  justify-between
-                  "
-                >
+senderId:userId,
 
-                  <h3
-                    className="
-                    font-semibold
-                    truncate
-                    "
-                  >
+content:file.name,
 
-                    {
-                      chat.title
-                    }
+messageType:media.type,
 
-                  </h3>
+mediaUrl:media.url
 
+});
 
 
-                  {
 
-                  chat.last_message
 
-                  &&
+}
 
-                  (
+finally{
 
-                  <span
-                    className="
-                    text-xs
-                    text-gray-500
-                    "
-                  >
 
-                    {
-                      new Date(
-                        chat.last_message.created_at
-                      )
-                      .toLocaleTimeString(
-                        [],
-                        {
-                          hour:"2-digit",
-                          minute:"2-digit"
-                        }
-                      )
-                    }
+setUploading(false);
 
-                  </span>
 
-                  )
+}
 
-                  }
 
 
-                </div>
+}
 
 
 
 
 
-                <div
-                  className="
-                  flex
-                  justify-between
-                  mt-1
-                  "
-                >
 
 
-                  <p
-                    className="
-                    text-sm
-                    text-gray-400
-                    truncate
-                    "
-                  >
 
-                    {
 
-                    chat.last_message
+return (
 
-                    ?
+<div
 
-                    chat.last_message.content
+className="
+min-h-screen
+bg-black
+text-white
+flex
+flex-col
+"
 
-                    :
+>
 
-                    "Belum ada pesan"
 
-                    }
 
 
-                  </p>
 
 
 
+<header
 
+className="
+p-4
+border-b
+border-white/10
+flex
+items-center
+gap-3
+"
 
-                  {
+>
 
-                  chat.last_message
 
-                  &&
+<div
 
-                  (
+className="
+w-10
+h-10
+rounded-full
+bg-blue-500/20
+flex
+items-center
+justify-center
+"
 
-                    <span
-                      className="
-                      text-xs
-                      text-blue-400
-                      "
-                    >
+>
 
-                    {
+S
 
-                    chat.last_message.status==="read"
+</div>
 
-                    ?
 
-                    "✓✓"
 
-                    :
 
-                    chat.last_message.status==="delivered"
+<div>
 
-                    ?
 
-                    "✓✓"
+<h2
 
-                    :
+className="
+font-semibold
+"
 
-                    "✓"
+>
 
-                    }
+Sky Contact
 
-                    </span>
+</h2>
 
-                  )
 
-                  }
 
+<div
 
-                </div>
+className="
+text-xs
+text-gray-400
+"
 
+>
 
-              </div>
 
+{
 
+onlineUsers.some(
 
+u=>
 
+u.status==="online"
 
-            </Link>
+)
 
-          )
+?
 
-        )
+"Online"
 
-      }
+:
 
+"Offline"
 
+}
 
 
 
-      </section>
+</div>
 
 
+</div>
 
 
+</header>
 
 
 
 
 
-      {/* BOTTOM NAV */}
 
-      <nav
-        className="
-        sky-bottom-nav
-        "
-      >
 
 
-        <button
-          className="
-          active
-          "
-        >
 
-          Chat
+<section
 
-        </button>
+className="
+flex-1
+overflow-y-auto
+p-4
+space-y-3
+"
 
+>
 
 
-        <button
-          className="
-          text-gray-500
-          "
-        >
 
-          Contact
 
-        </button>
 
+{
 
+messages.map(
 
-        <button
-          className="
-          text-gray-500
-          "
-        >
+(msg)=>(
 
-          Profile
 
-        </button>
 
+<div
 
-      </nav>
+key={msg.id}
 
+className={
 
+`
 
+flex
 
+${
 
-    </div>
+msg.sender_id===userId
 
-  );
+?
+
+"justify-end"
+
+:
+
+"justify-start"
+
+}
+
+`
+
+}
+
+>
+
+
+
+<div
+
+className={`
+
+max-w-[75%]
+
+rounded-2xl
+
+px-4
+
+py-3
+
+${
+
+msg.sender_id===userId
+
+?
+
+"bg-blue-600"
+
+:
+
+"bg-white/10"
+
+}
+
+`}
+
+>
+
+
+
+
+{
+
+msg.message_type!=="text"
+
+&&
+
+(
+
+<div
+
+className="
+text-xs
+text-blue-300
+mb-1
+"
+
+>
+
+📎 {msg.message_type}
+
+</div>
+
+)
+
+}
+
+
+
+
+
+<div>
+
+{msg.content}
+
+</div>
+
+
+
+
+
+{
+
+msg.sender_id===userId
+
+&&
+
+(
+
+<div
+
+className="
+text-right
+text-xs
+mt-1
+opacity-70
+"
+
+>
+
+{
+
+msg.status==="read"
+
+?
+
+"✓✓"
+
+:
+
+msg.status==="delivered"
+
+?
+
+"✓✓"
+
+:
+
+"✓"
+
+}
+
+</div>
+
+)
+
+}
+
+
+
+
+</div>
+
+
+
+</div>
+
+
+)
+
+)
+
+}
+
+
+
+
+
+
+<div ref={bottomRef}/>
+
+
+</section>
+
+
+
+
+
+
+
+
+{
+
+typingUsers.length>0
+
+&&
+
+<div
+
+className="
+px-5
+text-xs
+text-gray-400
+"
+
+>
+
+sedang mengetik...
+
+</div>
+
+}
+
+
+
+
+
+
+
+
+
+
+<footer
+
+className="
+p-3
+border-t
+border-white/10
+flex
+gap-2
+"
+
+>
+
+
+
+<label
+
+className="
+cursor-pointer
+"
+
+>
+
+📎
+
+<input
+
+type="file"
+
+hidden
+
+onChange={handleFile}
+
+/>
+
+</label>
+
+
+
+
+
+
+<input
+
+value={text}
+
+onChange={(e)=>{
+
+
+setText(e.target.value);
+
+
+setTyping(
+
+e.target.value.length>0
+
+);
+
+
+}}
+
+
+placeholder="Message..."
+
+className="
+flex-1
+bg-white/10
+rounded-full
+px-4
+outline-none
+"
+
+
+/>
+
+
+
+
+
+
+<button
+
+onClick={handleSend}
+
+className="
+bg-blue-600
+rounded-full
+px-5
+"
+
+>
+
+Send
+
+</button>
+
+
+
+</footer>
+
+
+
+
+
+
+{
+
+uploading
+
+&&
+
+<div
+
+className="
+absolute
+top-20
+right-5
+text-xs
+"
+
+>
+
+Uploading...
+
+</div>
+
+}
+
+
+
+</div>
+
+
+);
+
 
 }
