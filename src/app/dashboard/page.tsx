@@ -1,5 +1,5 @@
-import ChatListScreen from "@/features/chat/screens/ChatListScreen";
+import ChatDashboard from "@/features/chat/ChatDashboard";
 
 export default function DashboardPage() {
-  return <ChatListScreen />;
+  return <ChatDashboard />;
 }
