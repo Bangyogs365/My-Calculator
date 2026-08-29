@@ -1,43 +1,584 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* ======================================
+   SKY-SECURE DESIGN SYSTEM
+   Converted CSS Foundation
+   ====================================== */
+
+
 :root {
-  color-scheme: dark;
-  background: #000;
+
+  --sky-primary:
+    #2F80FF;
+
+  --sky-primary-dark:
+    #1455D9;
+
+  --sky-background:
+    #05070B;
+
+  --sky-surface:
+    #0D1118;
+
+  --sky-surface-soft:
+    #141A24;
+
+  --sky-border:
+    rgba(255,255,255,.08);
+
+  --sky-text:
+    #FFFFFF;
+
+  --sky-text-secondary:
+    #98A2B3;
+
+  --sky-success:
+    #22C55E;
+
+
+  --radius-sm:
+    12px;
+
+  --radius-md:
+    18px;
+
+  --radius-lg:
+    26px;
+
+
+  --shadow-premium:
+
+    0 20px 60px
+    rgba(0,0,0,.45);
+
+
+  --transition:
+
+    .25s ease;
+
 }
 
+
+
+
+
 * {
-  box-sizing: border-box;
+
+  box-sizing:
+  border-box;
+
 }
+
+
 
 html,
 body {
-  min-height: 100%;
+
+  margin:
+  0;
+
+  padding:
+  0;
+
+
+  width:
+  100%;
+
+
+  min-height:
+  100%;
+
+
+  background:
+  var(--sky-background);
+
+
+  color:
+  var(--sky-text);
+
+
+  font-family:
+
+  Inter,
+  system-ui,
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  sans-serif;
+
 }
+
+
+
+
 
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+
+  overflow-x:
+  hidden;
+
 }
 
-button {
-  font: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: filter 120ms ease, transform 120ms ease;
+
+
+
+
+/* ===============================
+   APP CONTAINER
+   =============================== */
+
+
+.sky-page {
+
+
+  min-height:
+  100vh;
+
+
+  background:
+
+  radial-gradient(
+    circle at top,
+    rgba(47,128,255,.15),
+    transparent 35%
+  ),
+
+  var(--sky-background);
+
+
 }
 
-button:hover {
-  filter: brightness(1.15);
+
+
+
+
+/* ===============================
+   PREMIUM CARD
+   =============================== */
+
+
+.sky-card {
+
+
+  background:
+
+  linear-gradient(
+    145deg,
+    rgba(255,255,255,.06),
+    rgba(255,255,255,.02)
+  );
+
+
+  border:
+
+  1px solid
+  var(--sky-border);
+
+
+  border-radius:
+
+  var(--radius-lg);
+
+
+  box-shadow:
+
+  var(--shadow-premium);
+
+
+  backdrop-filter:
+
+  blur(20px);
+
 }
 
-button:active {
-  transform: scale(0.96);
+
+
+
+
+/* ===============================
+   HEADER
+   =============================== */
+
+
+.sky-header {
+
+
+  height:
+  72px;
+
+
+  display:
+  flex;
+
+
+  align-items:
+  center;
+
+
+  justify-content:
+  space-between;
+
+
+  padding:
+
+  0 20px;
+
+
+  border-bottom:
+
+  1px solid
+  var(--sky-border);
+
+
 }
 
-button:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
+
+
+
+
+.sky-brand {
+
+
+  font-size:
+  20px;
+
+
+  font-weight:
+  800;
+
+
+  letter-spacing:
+  -.5px;
+
+}
+
+
+
+.sky-brand .primary {
+
+
+  color:
+  var(--sky-primary);
+
+}
+
+
+
+.sky-brand .secondary {
+
+
+  color:
+  white;
+
+}
+
+
+
+
+
+/* ===============================
+   BUTTON
+   =============================== */
+
+
+.sky-button {
+
+
+  border:
+  none;
+
+
+  cursor:
+  pointer;
+
+
+  border-radius:
+  999px;
+
+
+  padding:
+
+  12px 22px;
+
+
+  font-weight:
+  700;
+
+
+  color:
+  white;
+
+
+  background:
+
+  linear-gradient(
+    135deg,
+    var(--sky-primary),
+    var(--sky-primary-dark)
+  );
+
+
+  transition:
+  var(--transition);
+
+}
+
+
+
+.sky-button:hover {
+
+
+ transform:
+ scale(1.03);
+
+
+}
+
+
+
+
+
+/* ===============================
+   CHAT BUBBLE
+   =============================== */
+
+
+.sky-message {
+
+
+  max-width:
+  75%;
+
+
+  padding:
+
+  12px 16px;
+
+
+  border-radius:
+  20px;
+
+
+  line-height:
+  1.5;
+
+
+}
+
+
+
+.sky-message.mine {
+
+
+  margin-left:
+  auto;
+
+
+  background:
+
+  linear-gradient(
+    135deg,
+    #2F80FF,
+    #1455D9
+  );
+
+
+}
+
+
+
+.sky-message.other {
+
+
+  background:
+
+  var(--sky-surface);
+
+
+  border:
+
+  1px solid
+  var(--sky-border);
+
+}
+
+
+
+
+
+/* ===============================
+   INPUT COMPOSER
+   =============================== */
+
+
+.sky-input {
+
+
+  width:
+  100%;
+
+
+  background:
+
+  var(--sky-surface);
+
+
+  color:
+  white;
+
+
+  border:
+
+  1px solid
+  var(--sky-border);
+
+
+  border-radius:
+
+  999px;
+
+
+  padding:
+
+  14px 20px;
+
+
+  outline:
+  none;
+
+}
+
+
+
+.sky-input:focus {
+
+
+ border-color:
+
+ var(--sky-primary);
+
+
+}
+
+
+
+
+
+/* ===============================
+   BOTTOM NAV
+   =============================== */
+
+
+.sky-bottom-nav {
+
+
+ position:
+
+ fixed;
+
+
+ bottom:
+ 0;
+
+
+ left:
+ 0;
+
+
+ right:
+ 0;
+
+
+ height:
+ 70px;
+
+
+ display:
+ flex;
+
+
+ justify-content:
+ space-around;
+
+
+ align-items:
+ center;
+
+
+ background:
+
+ rgba(5,7,11,.92);
+
+
+ backdrop-filter:
+ blur(20px);
+
+
+ border-top:
+
+ 1px solid
+ var(--sky-border);
+
+}
+
+
+
+
+
+.sky-bottom-nav .active {
+
+
+ color:
+ var(--sky-primary);
+
+}
+
+
+
+
+
+/* ===============================
+   ANIMATION
+   =============================== */
+
+
+.fade-in {
+
+
+ animation:
+
+ fadeIn .25s ease;
+
+}
+
+
+
+@keyframes fadeIn {
+
+
+ from {
+
+ opacity:
+ 0;
+
+ transform:
+ translateY(8px);
+
+ }
+
+
+ to {
+
+ opacity:
+ 1;
+
+ transform:
+ translateY(0);
+
+ }
+
+
 }
