@@ -10,6 +10,7 @@ supabase
 } from "@/lib/supabase";
 
 
+
 export function usePresence(
 userId:string
 ){
@@ -18,8 +19,12 @@ userId:string
 useEffect(()=>{
 
 
-const updateOnline =
-async()=>{
+if(!userId)
+return;
+
+
+
+async function heartbeat(){
 
 
 await supabase
@@ -32,26 +37,40 @@ await supabase
 
 user_id:userId,
 
-is_online:true,
+status:
+"online",
 
-last_seen:
+last_active:
 new Date()
-.toISOString()
+.toISOString(),
+
+last_heartbeat:
+new Date()
+.toISOString(),
+
+device_time:
+new Date()
+.toISOString(),
+
+device_timezone:
+Intl.DateTimeFormat()
+.resolvedOptions()
+.timeZone
 
 });
 
 
-};
+}
 
 
 
-updateOnline();
+heartbeat();
 
 
 
-const interval =
+const timer =
 setInterval(
-updateOnline,
+heartbeat,
 30000
 );
 
@@ -59,7 +78,8 @@ updateOnline,
 
 return ()=>{
 
-clearInterval(interval);
+
+clearInterval(timer);
 
 
 supabase
@@ -68,9 +88,10 @@ supabase
 )
 .update({
 
-is_online:false,
+status:
+"offline",
 
-last_seen:
+last_active:
 new Date()
 .toISOString()
 
@@ -84,9 +105,9 @@ userId
 };
 
 
-
 },[
 userId
 ]);
+
 
 }
