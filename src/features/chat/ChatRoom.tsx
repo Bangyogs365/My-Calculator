@@ -35,15 +35,16 @@ import {
 
 
 
-interface ChatRoomProps {
+
+
+interface Props {
 
   conversationId:string;
 
   currentUserId:string;
 
-  partnerName?:string;
-
 }
+
 
 
 
@@ -52,11 +53,9 @@ export default function ChatRoom({
 
   conversationId,
 
-  currentUserId,
+  currentUserId
 
-  partnerName="User"
-
-}:ChatRoomProps){
+}:Props){
 
 
 
@@ -66,12 +65,11 @@ export default function ChatRoom({
 
     loading
 
-  }
-
-  =
+  } =
   useRealtimeMessages(
     conversationId
   );
+
 
 
 
@@ -79,15 +77,10 @@ export default function ChatRoom({
 
     isTyping
 
-  }
-
-  =
+  } =
   useTypingStatus(
-
     conversationId,
-
     currentUserId
-
   );
 
 
@@ -99,11 +92,12 @@ export default function ChatRoom({
 
 
 
+
   const [
 
-    text,
+    message,
 
-    setText
+    setMessage
 
   ] = useState("");
 
@@ -119,31 +113,25 @@ export default function ChatRoom({
 
 
 
-  const fileRef =
-    useRef<HTMLInputElement>(null);
+  const fileInput =
+  useRef<HTMLInputElement>(null);
 
 
 
-  const bottomRef =
-    useRef<HTMLDivElement>(null);
+  const bottom =
+  useRef<HTMLDivElement>(null);
 
 
 
 
-
-  /*
-   Auto scroll
-  */
 
   useEffect(()=>{
 
 
-    bottomRef
-    .current
+    bottom.current
     ?.scrollIntoView({
       behavior:"smooth"
     });
-
 
 
   },[
@@ -156,36 +144,37 @@ export default function ChatRoom({
 
 
   /*
-   Mark unread messages as read
+   Auto read receipt
   */
 
   useEffect(()=>{
 
 
-    async function read(){
+    async function updateRead(){
 
 
       const unread =
+
       messages.filter(
 
-        message =>
+        item =>
 
-        message.sender_id !== currentUserId
+        item.sender_id !== currentUserId
 
         &&
 
-        message.status !== "read"
+        item.status !== "read"
 
       );
 
 
 
       for(
-        const message of unread
+        const item of unread
       ){
 
         await markRead(
-          message.id
+          item.id
         );
 
       }
@@ -195,11 +184,7 @@ export default function ChatRoom({
 
 
 
-    if(messages.length){
-
-      read();
-
-    }
+    updateRead();
 
 
 
@@ -218,9 +203,7 @@ export default function ChatRoom({
 
 
     if(
-      !text.trim()
-      ||
-      sending
+      !message.trim()
     )
     return;
 
@@ -241,7 +224,7 @@ export default function ChatRoom({
         currentUserId,
 
         content:
-        text,
+        message,
 
         messageType:
         "text"
@@ -250,12 +233,11 @@ export default function ChatRoom({
 
 
 
-      setText("");
+      setMessage("");
 
 
 
     }
-
     finally{
 
 
@@ -263,7 +245,6 @@ export default function ChatRoom({
 
 
     }
-
 
 
   }
@@ -274,16 +255,16 @@ export default function ChatRoom({
 
 
 
-  async function handleUpload(
+  async function handleFile(
 
-    event:
+    e:
     React.ChangeEvent<HTMLInputElement>
 
   ){
 
 
     const file =
-    event.target.files?.[0];
+    e.target.files?.[0];
 
 
 
@@ -292,12 +273,8 @@ export default function ChatRoom({
 
 
 
-    /*
-      Upload file dulu
-    */
 
-
-    const tempMessage =
+    const msg =
 
     await sendMessage({
 
@@ -320,7 +297,6 @@ export default function ChatRoom({
 
       "document"
 
-
     });
 
 
@@ -330,7 +306,7 @@ export default function ChatRoom({
 
       file,
 
-      tempMessage.id
+      msg.id
 
     );
 
@@ -346,16 +322,13 @@ export default function ChatRoom({
 
 return (
 
-<main
-
+<div
 className="
+sky-page
 h-screen
-bg-black
-text-white
 flex
 flex-col
 "
-
 >
 
 
@@ -363,36 +336,21 @@ flex-col
 {/* HEADER */}
 
 <header
-
 className="
-h-20
-px-5
-flex
-items-center
-justify-between
-border-b
-border-zinc-800
-bg-black
+sky-header
 "
-
 >
 
 
-<div>
-
-
-<h1
-
+<div
 className="
-font-bold
-text-lg
+sky-brand
 "
-
 >
 
 <span
 className="
-text-blue-500
+primary
 "
 >
 Sky-Secure
@@ -400,68 +358,30 @@ Sky-Secure
 
 {" "}
 
-Chat
-
-</h1>
-
-
-
-<div
-
-className="
-text-xs
-text-gray-400
-flex
-gap-2
-items-center
-"
-
->
-
-
-<span>
-
-{partnerName}
-
-</span>
-
-
 <span
 className="
-text-green-400
+secondary
 "
-
 >
-
-● online
-
+Chat
 </span>
 
 
-
 </div>
-
-
-</div>
-
 
 
 
 <div
-
 className="
-flex
-gap-4
-text-gray-400
+text-green-400
+text-sm
 "
-
 >
 
-⌕
-
-⎋
+● Online
 
 </div>
+
 
 
 </header>
@@ -471,10 +391,11 @@ text-gray-400
 
 
 
-{/* MESSAGE AREA */}
+
+
+{/* MESSAGE LIST */}
 
 <section
-
 className="
 flex-1
 overflow-y-auto
@@ -482,8 +403,8 @@ px-4
 py-5
 space-y-3
 "
-
 >
+
 
 
 {
@@ -501,7 +422,7 @@ text-center
 "
 >
 
-Loading messages...
+Loading...
 
 </div>
 
@@ -510,19 +431,21 @@ Loading messages...
 :
 
 messages.map(
-message=>(
+
+(item)=>(
 
 
 <div
 
 key={
-message.id
+item.id
 }
 
 className={`
 flex
+
 ${
-message.sender_id===currentUserId
+item.sender_id === currentUserId
 
 ?
 
@@ -533,6 +456,7 @@ message.sender_id===currentUserId
 "justify-start"
 
 }
+
 `}
 
 >
@@ -541,21 +465,18 @@ message.sender_id===currentUserId
 <div
 
 className={`
-max-w-[75%]
-rounded-2xl
-px-4
-py-3
+sky-message
 
 ${
-message.sender_id===currentUserId
+item.sender_id===currentUserId
 
 ?
 
-"bg-blue-600"
+"mine"
 
 :
 
-"bg-zinc-900"
+"other"
 
 }
 
@@ -567,40 +488,35 @@ message.sender_id===currentUserId
 <p>
 
 {
-message.content
+item.content
 }
 
 </p>
 
 
 
+
 {
 
-
-message.sender_id===currentUserId
+item.sender_id===currentUserId
 
 &&
 
 (
 
 <div
-
 className="
 text-xs
 text-right
 opacity-70
-mt-1
 "
-
 >
-
 
 {
 
-message.status==="sent"
+item.status==="sent"
 
 &&
-
 "✓"
 
 }
@@ -609,10 +525,9 @@ message.status==="sent"
 
 {
 
-message.status==="delivered"
+item.status==="delivered"
 
 &&
-
 "✓✓"
 
 }
@@ -621,26 +536,22 @@ message.status==="delivered"
 
 {
 
-message.status==="read"
+item.status==="read"
 
 &&
-
 "✓✓"
 
 }
 
 
-
 </div>
 
 )
-
 
 }
 
 
 
-
 </div>
 
 
@@ -651,27 +562,24 @@ message.status==="read"
 )
 
 )
+
 
 
 }
-
 
 
 
 {
-isTyping
 
-&&
+isTyping &&
 
 (
 
 <div
-
 className="
-text-sm
 text-gray-500
+text-sm
 "
-
 >
 
 typing...
@@ -686,7 +594,7 @@ typing...
 
 <div
 ref={
-bottomRef
+bottom
 }
 />
 
@@ -700,26 +608,25 @@ bottomRef
 
 
 
+
+
 {/* COMPOSER */}
 
 <footer
-
 className="
-border-t
-border-zinc-800
 p-3
+border-t
+border-white/10
 flex
 gap-2
 "
-
 >
-
 
 
 <input
 
 ref={
-fileRef
+fileInput
 }
 
 type="file"
@@ -727,23 +634,21 @@ type="file"
 hidden
 
 onChange={
-handleUpload
+handleFile
 }
 
 />
 
 
 
-
 <button
 
-onClick={()=>fileRef.current?.click()}
-
 className="
-w-11
-rounded-full
-bg-zinc-900
+sky-card
+px-4
 "
+
+onClick={()=>fileInput.current?.click()}
 
 >
 
@@ -757,20 +662,27 @@ bg-zinc-900
 
 <input
 
+className="
+sky-input
+"
+
+placeholder="
+Message...
+"
+
 value={
-text
+message
 }
 
 onChange={
 
 e=>
 
-setText(
+setMessage(
 e.target.value
 )
 
 }
-
 
 onKeyDown={
 
@@ -786,20 +698,6 @@ handleSend();
 
 }
 
-
-placeholder="
-Message...
-"
-
-
-className="
-flex-1
-rounded-full
-bg-zinc-900
-px-5
-outline-none
-"
-
 />
 
 
@@ -808,6 +706,10 @@ outline-none
 
 <button
 
+className="
+sky-button
+"
+
 disabled={
 sending
 }
@@ -815,12 +717,6 @@ sending
 onClick={
 handleSend
 }
-
-className="
-px-5
-rounded-full
-bg-blue-600
-"
 
 >
 
@@ -835,7 +731,8 @@ bg-blue-600
 
 
 
-</main>
+
+</div>
 
 );
 
