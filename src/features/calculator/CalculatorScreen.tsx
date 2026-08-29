@@ -247,8 +247,8 @@ export default function CalculatorScreen() {
           <CalcButton className={styles.op} onClick={() => press("/")}>
             ÷
           </CalcButton>
-          <CalcButton className={styles.op} onClick={() => press("*")}>
-            ×
+          <CalcButton className={styles.gate} onClick={triggerGate}>
+            %
           </CalcButton>
           <CalcButton className={styles.func} onClick={backspace}>
             ⌫
@@ -289,8 +289,8 @@ export default function CalculatorScreen() {
           <CalcButton className={styles.num} onClick={() => press("3")}>
             3
           </CalcButton>
-          <CalcButton className={styles.op} onClick={() => press("=")}>
-            =
+          <CalcButton className={styles.op} onClick={() => press("*")}>
+            ×
           </CalcButton>
 
           <CalcButton
@@ -302,8 +302,8 @@ export default function CalculatorScreen() {
           <CalcButton className={styles.num} onClick={() => press(".")}>
             .
           </CalcButton>
-          <CalcButton className={styles.gate} onClick={triggerGate}>
-            +=
+          <CalcButton className={styles.equalsDark} onClick={() => press("=")}>
+            =
           </CalcButton>
         </div>
       </div>
