@@ -9,121 +9,81 @@ export function useCalculatorEngine() {
   const [firstValue, setFirstValue] = useState<number | null>(null);
   const [operator, setOperator] = useState<Operator | null>(null);
   const [waitingNext, setWaitingNext] = useState(false);
-
-  // menyimpan input angka terakhir untuk trigger gate
   const [inputHistory, setInputHistory] = useState("");
 
   function inputNumber(value: string) {
     setDisplay((current) => {
-      if (waitingNext || current === "0") {
-        return value;
-      }
-
+      if (waitingNext) return value === "." ? "0." : value;
+      if (value === "." && current.includes(".")) return current;
+      if (current === "0") return value === "." ? "0." : value;
       return `${current}${value}`.slice(0, 15);
     });
 
     setWaitingNext(false);
-
     if (/^[0-9]$/.test(value)) {
-      setInputHistory((prev) =>
-        `${prev}${value}`.slice(-50)
-      );
+      setInputHistory((previous) => `${previous}${value}`.slice(-50));
     }
   }
 
-
-  function chooseOperator(op: Operator) {
-    setFirstValue(Number(display));
-    setOperator(op);
-    setWaitingNext(true);
-  }
-
-
-  function calculate() {
-    if (
-      firstValue === null ||
-      operator === null
-    ) {
+  function backspace() {
+    if (waitingNext) {
+      setDisplay("0");
+      setWaitingNext(false);
       return;
     }
 
+    setDisplay((current) => current.length > 1 ? current.slice(0, -1) : "0");
+    setInputHistory((previous) => previous.slice(0, -1));
+  }
+
+  function chooseOperator(nextOperator: Operator) {
+    setFirstValue(Number(display));
+    setOperator(nextOperator);
+    setWaitingNext(true);
+  }
+
+  function calculate() {
+    if (firstValue === null || operator === null) return;
 
     const secondValue = Number(display);
-
     let result = 0;
 
-
-    switch(operator){
-
+    switch (operator) {
       case "+":
         result = firstValue + secondValue;
         break;
-
-
       case "-":
         result = firstValue - secondValue;
         break;
-
-
       case "*":
         result = firstValue * secondValue;
         break;
-
-
       case "/":
-        result =
-          secondValue === 0
-          ? 0
-          : firstValue / secondValue;
-
+        result = secondValue === 0 ? 0 : firstValue / secondValue;
         break;
     }
 
-
-    setDisplay(
-      Number(
-        result.toFixed(8)
-      ).toString()
-    );
-
-
+    setDisplay(Number(result.toFixed(8)).toString());
     setFirstValue(null);
     setOperator(null);
     setWaitingNext(true);
   }
 
-
-
-  function clear(){
-
+  function clear() {
     setDisplay("0");
-
     setFirstValue(null);
-
     setOperator(null);
-
     setWaitingNext(false);
-
     setInputHistory("");
-
   }
 
-
-
   return {
-
     display,
-
     inputHistory,
-
     inputNumber,
-
+    backspace,
     chooseOperator,
-
     calculate,
-
-    clear
-
+    clear,
   };
-
 }
