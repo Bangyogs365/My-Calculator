@@ -13,313 +13,395 @@ import {
 
 
 
-export interface ChatItem {
 
-  id:string;
 
-  title:string;
+export interface ChatListItem {
 
-  avatar?:string|null;
 
-  last_message?:{
+  conversation_id:string;
 
-    content:string;
 
-    status:string;
+  partner_id:string | null;
 
-    created_at:string;
 
-  } | null;
+  last_message:string;
+
+
+  last_status:string;
+
+
+  last_time:string;
+
+
+  unread:number;
+
 
 }
+
 
 
 
 
 
 export function useChatList(
-userId?:string
+  userId?:string
 ){
 
 
-const [
+  const [
 
-data,
+    chats,
 
-setData
+    setChats
 
-]=useState<ChatItem[]>([]);
-
-
-
-const [
-
-loading,
-
-setLoading
-
-]=useState(true);
+  ] = useState<ChatListItem[]>([]);
 
 
 
-const [
+  const [
 
-error,
+    loading,
 
-setError
+    setLoading
 
-]=useState<string|null>(null);
-
-
+  ] = useState(true);
 
 
 
-useEffect(()=>{
+  const [
+
+    error,
+
+    setError
+
+  ] = useState<string|null>(null);
 
 
-if(!userId)
-return;
 
 
 
-async function load(){
 
 
-try{
+
+  async function loadChats(){
 
 
-const {
 
-data:rows,
+    if(!userId)
+    return;
 
-error
 
-}=
 
-await supabase
 
-.from(
-"conversations"
-)
+    try{
 
-.select(`
 
+      setLoading(true);
+
+
+
+      const {
+
+        data,
+
+        error
+
+      }
+
+      =
+
+      await supabase
+
+      .from(
+        "chat_messages"
+      )
+
+      .select(
+`
 id,
-
-title,
-
-conversation_members(
-
-user_id,
-
-user_profiles(
-
-full_name,
-
-avatar_url
-
-)
-
-),
-
-chat_messages(
-
+conversation_id,
+sender_id,
+receiver_id,
 content,
-
 status,
-
 created_at
+`
+      )
 
-)
+      .or(
+`
+sender_id.eq.${userId},
+receiver_id.eq.${userId}
+`
+      )
 
-`)
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      );
 
-.order(
-"created_at",
-{
-ascending:false
-}
-);
 
 
 
 
-if(error)
-throw error;
+      if(error)
+      throw error;
 
 
 
-const mapped =
 
-(rows ?? [])
 
-.map(
 
-(item:any)=>(
+      const grouped =
+      new Map<string,ChatListItem>();
 
 
-{
 
-id:item.id,
 
-title:
 
-item.title
+      data?.forEach(
+      (
+        message:any
+      )=>{
 
-??
 
-item.conversation_members
 
-?.[0]
+        const id =
+        message.conversation_id;
 
-?.user_profiles
 
-?.full_name
 
-??
+        if(!id)
+        return;
 
-"Conversation",
 
 
-avatar:
 
-item.conversation_members
 
-?.[0]
+        const partner =
 
-?.user_profiles
+        message.sender_id === userId
 
-?.avatar_url
+        ?
 
-??
+        message.receiver_id
 
-null,
+        :
 
+        message.sender_id;
 
-last_message:
 
-item.chat_messages
 
-?.length
 
-?
 
-item.chat_messages
+        if(
+          !grouped.has(id)
+        ){
 
-[
-item.chat_messages.length-1
-]
 
-:
+          grouped.set(
 
-null
+            id,
 
+            {
 
-}
+              conversation_id:id,
 
+              partner_id:partner,
 
-)
+              last_message:
+              message.content,
 
-);
+              last_status:
+              message.status,
 
+              last_time:
+              message.created_at,
 
+              unread:
 
-setData(mapped);
+              message.sender_id !== userId
 
+              &&
 
+              message.status !== "read"
 
-}
+              ?
 
-catch(err:any){
+              1
 
-setError(
-err.message
-);
+              :
 
-}
+              0
 
-finally{
 
-setLoading(false);
+            }
 
-}
+          );
 
 
-}
+        }
 
 
 
-load();
 
+      });
 
 
 
 
-const channel =
 
-supabase
+      setChats(
 
-.channel(
-"dashboard-chat-list"
-)
+        Array.from(
+          grouped.values()
+        )
 
+      );
 
-.on(
 
-"postgres_changes",
 
-{
 
-event:"*",
+    }
 
-schema:"public",
+    catch(err:any){
 
-table:"chat_messages"
 
-},
+      console.error(
+        err
+      );
 
 
-()=>{
+      setError(
+        err.message
+        ??
+        "Failed load chats"
+      );
 
-load();
 
-}
+    }
 
-)
+    finally{
 
 
-.subscribe();
+      setLoading(false);
 
 
+    }
 
 
-return ()=>{
 
-supabase
-.removeChannel(
-channel
-);
+  }
 
-};
 
 
-},[
-userId
-]);
 
 
 
 
 
-return {
 
-data,
+  useEffect(()=>{
 
-loading,
 
-error
+    if(!userId)
+    return;
 
-};
+
+
+    loadChats();
+
+
+
+
+
+
+    const channel =
+
+    supabase
+
+    .channel(
+      `chat-list-${userId}`
+    )
+
+
+
+    .on(
+
+      "postgres_changes",
+
+      {
+
+        event:"*",
+
+        schema:"public",
+
+        table:"chat_messages"
+
+      },
+
+
+      ()=>{
+
+        loadChats();
+
+      }
+
+    )
+
+
+
+    .subscribe();
+
+
+
+
+
+
+
+    return ()=>{
+
+
+      supabase
+
+      .removeChannel(
+        channel
+      );
+
+
+    };
+
+
+
+
+  },[
+    userId
+  ]);
+
+
+
+
+
+
+
+  return {
+
+
+    data:chats,
+
+
+    loading,
+
+
+    error,
+
+
+    refresh:loadChats
+
+
+  };
 
 
 }
