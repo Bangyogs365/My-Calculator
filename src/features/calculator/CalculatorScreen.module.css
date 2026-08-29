@@ -130,6 +130,14 @@
 }
 
 
+/* Equals button (dark red) */
+
+.equalsDark {
+  background: #8b0000;
+  color: #fff;
+}
+
+
 /* Zero button */
 
 .zero {
