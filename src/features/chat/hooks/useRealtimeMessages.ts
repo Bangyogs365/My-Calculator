@@ -17,291 +17,449 @@ import {
 } from "../services/messageService";
 
 
-import type {
-  ChatMessage
-} from "../services/messageService";
+
+
+
+export interface ChatMessage {
+
+
+id:string;
+
+
+conversation_id:string;
+
+
+sender_id:string;
+
+
+content:string;
+
+
+message_type:string;
+
+
+status:string;
+
+
+created_at:string;
+
+
+delivered_at?:string|null;
+
+
+read_at?:string|null;
+
+
+media_url?:string|null;
+
+
+media_thumbnail_url?:string|null;
+
+
+}
+
+
+
+
+
 
 
 
 
 export function useRealtimeMessages(
-  conversationId?: string
+
+conversationId?:string
+
 ){
 
 
-  const [
-    messages,
-    setMessages
-  ] = useState<ChatMessage[]>([]);
 
+const [
 
+messages,
 
-  const [
-    loading,
-    setLoading
-  ] = useState(true);
+setMessages
 
+]
 
+=
 
-  const [
-    error,
-    setError
-  ] = useState<string | null>(null);
+useState<ChatMessage[]>([]);
 
 
 
 
-  useEffect(()=>{
+const [
 
+loading,
 
-    if(!conversationId){
+setLoading
 
-      setMessages([]);
+]
 
-      setLoading(false);
+=
 
-      return;
+useState(true);
 
-    }
 
 
 
-    let mounted = true;
+const [
 
+error,
 
+setError
 
-    async function loadMessages(){
+]
 
+=
 
-      try{
+useState<string|null>(null);
 
 
-        setLoading(true);
 
 
-        const result =
-          await getMessages(
-            conversationId
-          );
 
 
 
-        if(mounted){
 
-          setMessages(result);
+async function loadMessages(){
 
-        }
 
+if(!conversationId)
+return;
 
 
-      }
-      catch(err){
 
+try{
 
-        if(mounted){
 
-          setError(
-            err instanceof Error
-            ? err.message
-            : "Failed load messages"
-          );
+setLoading(true);
 
-        }
 
 
-      }
-      finally{
+const data =
 
+await getMessages(
 
-        if(mounted){
+conversationId
 
-          setLoading(false);
+);
 
-        }
 
 
-      }
+setMessages(
 
+data as ChatMessage[]
 
-    }
+);
 
 
 
-    loadMessages();
+}
 
+catch(err:any){
 
 
+console.error(err);
 
-    const channel =
 
-      supabase
+setError(
 
-      .channel(
-        `conversation:${conversationId}`
-      )
+err.message ??
 
+"Failed load messages"
 
+);
 
-      // Pesan baru masuk
 
-      .on(
 
-        "postgres_changes",
+}
 
-        {
-          event:"INSERT",
+finally{
 
-          schema:"public",
 
-          table:"chat_messages",
+setLoading(false);
 
-          filter:
-          `conversation_id=eq.${conversationId}`
 
-        },
+}
 
 
-        (payload)=>{
 
+}
 
-          const newMessage =
-            payload.new as ChatMessage;
 
 
 
-          setMessages(prev=>{
 
 
-            const exists =
-              prev.some(
-                item =>
-                item.id === newMessage.id
-              );
 
 
 
-            if(exists){
+useEffect(()=>{
 
-              return prev;
 
-            }
 
+if(!conversationId)
+return;
 
 
-            return [
 
-              ...prev,
 
-              newMessage
+loadMessages();
 
-            ];
 
-          });
 
 
 
-        }
 
-      )
+const channel =
 
+supabase
 
+.channel(
 
-      // Update status read/delivered
+`messages-${conversationId}`
 
-      .on(
+)
 
-        "postgres_changes",
 
-        {
-          event:"UPDATE",
 
-          schema:"public",
 
-          table:"chat_messages",
 
-          filter:
-          `conversation_id=eq.${conversationId}`
 
-        },
 
+.on(
 
-        (payload)=>{
+"postgres_changes",
 
+{
 
-          const updated =
-          payload.new as ChatMessage;
 
+event:"INSERT",
 
 
-          setMessages(prev=>
+schema:"public",
 
 
-            prev.map(message=>
+table:"chat_messages",
 
 
-              message.id === updated.id
+filter:
 
-              ?
+`conversation_id=eq.${conversationId}`
 
-              updated
 
-              :
+},
 
-              message
 
 
-            )
+(payload)=>{
 
-          );
 
 
-        }
+setMessages(
 
-      )
+prev=>[
 
+...prev,
 
+payload.new as ChatMessage
 
-      .subscribe();
+]
 
+);
 
 
 
+}
 
-    return ()=>{
 
+)
 
-      mounted = false;
 
 
 
-      supabase
 
-      .removeChannel(
-        channel
-      );
 
 
-    };
 
+.on(
 
+"postgres_changes",
 
-  },[
-    conversationId
-  ]);
+{
 
 
+event:"UPDATE",
 
 
+schema:"public",
 
-  return {
 
-    messages,
+table:"chat_messages",
 
-    loading,
 
-    error
+filter:
 
-  };
+`conversation_id=eq.${conversationId}`
+
+
+},
+
+
+
+(payload)=>{
+
+
+
+setMessages(
+
+prev=>
+
+prev.map(
+
+(message)=>
+
+message.id === payload.new.id
+
+?
+
+payload.new as ChatMessage
+
+:
+
+message
+
+)
+
+
+);
+
+
+
+}
+
+
+)
+
+
+
+
+
+
+
+.on(
+
+"postgres_changes",
+
+{
+
+
+event:"DELETE",
+
+
+schema:"public",
+
+
+table:"chat_messages",
+
+
+filter:
+
+`conversation_id=eq.${conversationId}`
+
+
+},
+
+
+
+(payload)=>{
+
+
+
+setMessages(
+
+prev=>
+
+prev.filter(
+
+message=>
+
+message.id !== payload.old.id
+
+)
+
+
+);
+
+
+
+}
+
+
+)
+
+
+
+
+
+
+
+
+.subscribe();
+
+
+
+
+
+
+
+return ()=>{
+
+
+supabase
+
+.removeChannel(
+
+channel
+
+);
+
+
+
+};
+
+
+
+
+},[conversationId]);
+
+
+
+
+
+
+
+
+return {
+
+
+messages,
+
+
+loading,
+
+
+error,
+
+
+refresh:loadMessages
+
+
+
+};
+
 
 
 }
