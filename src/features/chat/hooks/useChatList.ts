@@ -1,149 +1,81 @@
 "use client";
 
-
 import {
+  useCallback,
   useEffect,
   useState
 } from "react";
 
-
 import {
   supabase
 } from "@/lib/supabase";
-
 
 import {
   getUserConversations
 } from "../services/conversationService";
 
 
-
-
-
 export interface ChatListItem {
 
+  id:string;
 
-id:string;
+  title:string | null;
 
+  type:string;
 
-title:string | null;
+  partner: {
 
+    id:string;
 
-type:string;
+    display_name:string;
 
+    avatar_url:string|null;
 
-partner: {
-
-
-id:string;
-
-
-display_name:string;
+  } | null;
 
 
-avatar_url:string|null;
+  last_message:
+
+  {
+
+    content:string;
+
+    status:string;
+
+    created_at:string;
+
+  } | null;
 
 
-}
-|null;
-
-
-
-last_message:
-
-
-{
-
-content:string;
-
-
-status:string;
-
-
-created_at:string;
-
+  unread:number;
 
 }
-
-|null;
-
-
-
-unread:number;
-
-
-}
-
-
-
-
 
 
 
 export function useChatList(
-
-userId?:string
-
+  userId?:string
 ){
 
 
-
-const [
-
-data,
-
-setData
-
-]
-
-=
-
+const [data,setData] =
 useState<ChatListItem[]>([]);
 
 
-
-
-const [
-
-loading,
-
-setLoading
-
-]
-
-=
-
+const [loading,setLoading] =
 useState(true);
 
 
-
-
-const [
-
-error,
-
-setError
-
-]
-
-=
-
+const [error,setError] =
 useState<string|null>(null);
 
 
 
 
-
-
-
-
-
-async function load(){
-
+const load = useCallback(async()=>{
 
 
 if(!userId)
-
 return;
 
 
@@ -156,19 +88,14 @@ setLoading(true);
 
 
 const result =
-
 await getUserConversations(
-
-userId
-
+  userId
 );
 
 
 
 setData(
-
-result as ChatListItem[]
-
+  result as ChatListItem[]
 );
 
 
@@ -182,12 +109,10 @@ console.error(err);
 
 
 setError(
-
-err.message ??
-
-"Failed load conversations"
-
+ err.message ??
+ "Failed load conversations"
 );
+
 
 
 }
@@ -202,10 +127,7 @@ setLoading(false);
 
 
 
-}
-
-
-
+},[userId]);
 
 
 
@@ -216,7 +138,6 @@ useEffect(()=>{
 
 
 if(!userId)
-
 return;
 
 
@@ -225,29 +146,13 @@ load();
 
 
 
-
-
-
-/*
- Realtime conversation update
-
- Trigger dari chat_messages
-*/
-
-
 const channel =
 
 supabase
 
 .channel(
-
 `chat-list-${userId}`
-
 )
-
-
-
-
 
 
 
@@ -256,34 +161,22 @@ supabase
 "postgres_changes",
 
 {
-
 
 event:"INSERT",
 
-
 schema:"public",
-
 
 table:"chat_messages"
 
-
 },
-
 
 ()=>{
 
-
 load();
-
 
 }
 
-
 )
-
-
-
-
 
 
 
@@ -293,33 +186,21 @@ load();
 
 {
 
-
 event:"UPDATE",
-
 
 schema:"public",
 
-
 table:"chat_messages"
-
 
 },
 
-
 ()=>{
-
 
 load();
 
-
 }
 
-
 )
-
-
-
-
 
 
 
@@ -329,17 +210,11 @@ load();
 
 
 
-
-
 return ()=>{
 
 
-supabase
-
-.removeChannel(
-
+supabase.removeChannel(
 channel
-
 );
 
 
@@ -347,9 +222,10 @@ channel
 
 
 
-},[userId]);
-
-
+},[
+userId,
+load
+]);
 
 
 
@@ -361,12 +237,9 @@ return {
 
 data,
 
-
 loading,
 
-
 error,
-
 
 refresh:load
 
