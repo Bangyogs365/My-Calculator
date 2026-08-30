@@ -1,14 +1,53 @@
+"use client";
+
 import MessageBubble from "./MessageBubble";
 
-export default function MessageList({ messages = [] }: { messages?: any[] }) {
+
+interface MessageListProps {
+  messages?: any[];
+  currentUserId: string;
+}
+
+
+export default function MessageList({
+  messages = [],
+  currentUserId,
+}: MessageListProps) {
+
+
   return (
-    <div>
+    <div
+      className="
+        flex
+        flex-col
+        gap-1
+        p-4
+      "
+    >
+
       {messages.map((message) => (
+
         <MessageBubble
+
           key={message.id}
-          text={message.content}
+
+          text={
+            message.content ?? ""
+          }
+
+          mine={
+            message.sender_id === currentUserId
+          }
+
+          read={
+            message.status === "read"
+          }
+
         />
+
       ))}
+
+
     </div>
   );
 }
