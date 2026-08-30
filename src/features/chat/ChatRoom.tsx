@@ -1,74 +1,45 @@
 "use client";
 
-
 import {
   useEffect,
   useRef,
   useState
 } from "react";
 
-
-import {
-  useParams
-} from "next/navigation";
-
-
-import {
-  useAuth
-} from "@/features/auth/AuthContext";
-
-
 import {
   useRealtimeMessages
 } from "./hooks/useRealtimeMessages";
-
 
 import {
   useTypingStatus
 } from "./hooks/useTypingStatus";
 
-
 import {
   usePresence
 } from "./hooks/usePresence";
 
-
 import {
-  sendMessage,
-  markRead
+  sendMessage
 } from "./services/messageService";
-
 
 import {
   uploadChatMedia
 } from "./services/mediaService";
 
 
-
-
-
-
-
-
-export default function ChatRoom(){
-
-
-const params = useParams();
-
-
-const conversationId =
-params.id as string;
-
-
-
-
-const {
-userId
+interface ChatRoomProps {
+  conversationId: string;
+  currentUserId: string;
 }
-=
-useAuth();
 
 
+export default function ChatRoom({
+  conversationId,
+  currentUserId,
+}: ChatRoomProps){
+
+
+const userId = currentUserId;
 
 
 
@@ -81,12 +52,8 @@ loading
 }
 =
 useRealtimeMessages(
-
 conversationId
-
 );
-
-
 
 
 
@@ -100,15 +67,9 @@ setTyping
 }
 =
 useTypingStatus(
-
 conversationId,
-
-userId ?? undefined
-
+userId
 );
-
-
-
 
 
 
@@ -120,13 +81,8 @@ onlineUsers
 }
 =
 usePresence(
-
-userId ?? undefined
-
+userId
 );
-
-
-
 
 
 
@@ -143,15 +99,8 @@ useState(false);
 
 
 
-
-
 const bottomRef =
 useRef<HTMLDivElement>(null);
-
-
-
-
-
 
 
 
@@ -171,28 +120,16 @@ behavior:"smooth"
 
 
 
-
-
-
-
-
-
 async function handleSend(){
 
 
 if(
-
 !text.trim()
-
 ||
-
 !userId
-
 )
 
 return;
-
-
 
 
 
@@ -210,18 +147,12 @@ messageType:"text"
 
 
 
-
 setText("");
-
-
 
 setTyping(false);
 
 
 }
-
-
-
 
 
 
@@ -239,20 +170,13 @@ const file =
 e.target.files?.[0];
 
 
-
 if(
-
 !file
-
 ||
-
 !userId
-
 )
 
 return;
-
-
 
 
 
@@ -264,7 +188,6 @@ setUploading(true);
 
 
 const media =
-
 await uploadChatMedia(
 
 file,
@@ -274,7 +197,6 @@ userId,
 conversationId
 
 );
-
 
 
 
@@ -296,7 +218,6 @@ mediaUrl:media.url
 
 
 
-
 }
 
 finally{
@@ -308,12 +229,7 @@ setUploading(false);
 }
 
 
-
 }
-
-
-
-
 
 
 
@@ -332,11 +248,6 @@ flex-col
 "
 
 >
-
-
-
-
-
 
 
 <header
@@ -372,10 +283,7 @@ S
 </div>
 
 
-
-
 <div>
-
 
 <h2
 
@@ -390,7 +298,6 @@ Sky Contact
 </h2>
 
 
-
 <div
 
 className="
@@ -400,15 +307,10 @@ text-gray-400
 
 >
 
-
 {
 
 onlineUsers.some(
-
-u=>
-
-u.status==="online"
-
+u=>u.status==="online"
 )
 
 ?
@@ -421,8 +323,6 @@ u.status==="online"
 
 }
 
-
-
 </div>
 
 
@@ -430,10 +330,6 @@ u.status==="online"
 
 
 </header>
-
-
-
-
 
 
 
@@ -451,16 +347,11 @@ space-y-3
 >
 
 
-
-
-
 {
 
 messages.map(
 
 (msg)=>(
-
-
 
 <div
 
@@ -491,7 +382,6 @@ msg.sender_id===userId
 }
 
 >
-
 
 
 <div
@@ -525,15 +415,11 @@ msg.sender_id===userId
 >
 
 
-
-
 {
 
 msg.message_type!=="text"
 
 &&
-
-(
 
 <div
 
@@ -549,11 +435,7 @@ mb-1
 
 </div>
 
-)
-
 }
-
-
 
 
 
@@ -566,14 +448,11 @@ mb-1
 
 
 
-
 {
 
 msg.sender_id===userId
 
 &&
-
-(
 
 <div
 
@@ -610,15 +489,11 @@ msg.status==="delivered"
 
 </div>
 
-)
-
 }
 
 
 
-
 </div>
-
 
 
 </div>
@@ -629,9 +504,6 @@ msg.status==="delivered"
 )
 
 }
-
-
-
 
 
 
@@ -639,9 +511,6 @@ msg.status==="delivered"
 
 
 </section>
-
-
-
 
 
 
@@ -668,11 +537,6 @@ sedang mengetik...
 </div>
 
 }
-
-
-
-
-
 
 
 
@@ -718,26 +582,19 @@ onChange={handleFile}
 
 
 
-
 <input
 
 value={text}
 
 onChange={(e)=>{
 
-
 setText(e.target.value);
 
-
 setTyping(
-
 e.target.value.length>0
-
 );
 
-
 }}
-
 
 placeholder="Message..."
 
@@ -749,9 +606,7 @@ px-4
 outline-none
 "
 
-
 />
-
 
 
 
@@ -776,7 +631,6 @@ Send
 
 
 </footer>
-
 
 
 
@@ -808,7 +662,6 @@ Uploading...
 
 
 </div>
-
 
 );
 
