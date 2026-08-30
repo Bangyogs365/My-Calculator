@@ -6,7 +6,7 @@ import ChatListItemRow from "../components/ChatListItemRow";
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const { chats, loading, error } = useChatList();
+  const { data: chats, loading, error } = useChatList();
 
   return (
     <main>
