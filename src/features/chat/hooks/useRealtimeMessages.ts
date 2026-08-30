@@ -1,7 +1,7 @@
 "use client";
 
-
 import {
+  useCallback,
   useEffect,
   useState
 } from "react";
@@ -18,112 +18,56 @@ import {
 
 
 
-
-
 export interface ChatMessage {
-
 
 id:string;
 
-
 conversation_id:string;
-
 
 sender_id:string;
 
-
 content:string;
-
 
 message_type:string;
 
-
 status:string;
-
 
 created_at:string;
 
-
 delivered_at?:string|null;
-
 
 read_at?:string|null;
 
-
 media_url?:string|null;
 
-
 media_thumbnail_url?:string|null;
-
 
 }
 
 
 
 
-
-
-
-
-
 export function useRealtimeMessages(
-
 conversationId?:string
-
 ){
 
 
-
-const [
-
-messages,
-
-setMessages
-
-]
-
-=
-
+const [messages,setMessages] =
 useState<ChatMessage[]>([]);
 
 
-
-
-const [
-
-loading,
-
-setLoading
-
-]
-
-=
-
+const [loading,setLoading] =
 useState(true);
 
 
-
-
-const [
-
-error,
-
-setError
-
-]
-
-=
-
+const [error,setError] =
 useState<string|null>(null);
 
 
 
 
 
-
-
-
-async function loadMessages(){
+const loadMessages = useCallback(async()=>{
 
 
 if(!conversationId)
@@ -139,19 +83,14 @@ setLoading(true);
 
 
 const data =
-
 await getMessages(
-
 conversationId
-
 );
 
 
 
 setMessages(
-
 data as ChatMessage[]
-
 );
 
 
@@ -165,11 +104,8 @@ console.error(err);
 
 
 setError(
-
 err.message ??
-
 "Failed load messages"
-
 );
 
 
@@ -186,9 +122,9 @@ setLoading(false);
 
 
 
-}
-
-
+},[
+conversationId
+]);
 
 
 
@@ -199,16 +135,12 @@ setLoading(false);
 useEffect(()=>{
 
 
-
 if(!conversationId)
 return;
 
 
 
-
 loadMessages();
-
-
 
 
 
@@ -218,14 +150,8 @@ const channel =
 supabase
 
 .channel(
-
 `messages-${conversationId}`
-
 )
-
-
-
-
 
 
 
@@ -235,50 +161,33 @@ supabase
 
 {
 
-
 event:"INSERT",
-
 
 schema:"public",
 
-
 table:"chat_messages",
 
-
 filter:
-
 `conversation_id=eq.${conversationId}`
 
-
 },
-
 
 
 (payload)=>{
 
 
-
-setMessages(
-
-prev=>[
+setMessages(prev=>[
 
 ...prev,
 
 payload.new as ChatMessage
 
-]
-
-);
-
+]);
 
 
 }
 
-
 )
-
-
-
 
 
 
@@ -290,36 +199,24 @@ payload.new as ChatMessage
 
 {
 
-
 event:"UPDATE",
-
 
 schema:"public",
 
-
 table:"chat_messages",
 
-
 filter:
-
 `conversation_id=eq.${conversationId}`
 
-
 },
-
 
 
 (payload)=>{
 
 
+setMessages(prev=>
 
-setMessages(
-
-prev=>
-
-prev.map(
-
-(message)=>
+prev.map(message=>
 
 message.id === payload.new.id
 
@@ -333,16 +230,12 @@ message
 
 )
 
-
 );
-
 
 
 }
 
-
 )
-
 
 
 
@@ -355,53 +248,35 @@ message
 
 {
 
-
 event:"DELETE",
-
 
 schema:"public",
 
-
 table:"chat_messages",
 
-
 filter:
-
 `conversation_id=eq.${conversationId}`
 
-
 },
-
 
 
 (payload)=>{
 
 
+setMessages(prev=>
 
-setMessages(
-
-prev=>
-
-prev.filter(
-
-message=>
+prev.filter(message=>
 
 message.id !== payload.old.id
 
 )
 
-
 );
-
 
 
 }
 
-
 )
-
-
-
 
 
 
@@ -413,29 +288,22 @@ message.id !== payload.old.id
 
 
 
-
-
 return ()=>{
 
 
-supabase
-
-.removeChannel(
-
+supabase.removeChannel(
 channel
-
 );
-
 
 
 };
 
 
 
-
-},[conversationId]);
-
-
+},[
+conversationId,
+loadMessages
+]);
 
 
 
@@ -447,19 +315,14 @@ return {
 
 messages,
 
-
 loading,
-
 
 error,
 
-
 refresh:loadMessages
-
 
 
 };
 
 
-
-}
+}.ts
