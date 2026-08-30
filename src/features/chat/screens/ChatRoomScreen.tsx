@@ -4,12 +4,14 @@ import { useCallback } from "react";
 import { useChatMessages } from "../hooks/useChatMessages";
 import { useChatRealtime } from "../hooks/useChatRealtime";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useUser } from "../hooks/useUser";
 import MessageList from "../components/MessageList";
 import MessageComposer from "../components/MessageComposer";
 
 export default function ChatRoomScreen({ conversationId }: { conversationId: string }) {
   const { messages, setMessages } = useChatMessages(conversationId);
   const { sendText } = useSendMessage();
+  const { user } = useUser();
 
   const onRealtimeEvent = useCallback(
     (payload: unknown) => {
@@ -38,7 +40,7 @@ export default function ChatRoomScreen({ conversationId }: { conversationId: str
     <main style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <h1 style={{ padding: 16 }}>Chat Room</h1>
       <div style={{ flex: 1, overflowY: "auto" }}>
-        <MessageList messages={messages} />
+        <MessageList messages={messages} currentUserId={user?.id ?? ""} />
       </div>
       <MessageComposer onSend={handleSend} />
     </main>
