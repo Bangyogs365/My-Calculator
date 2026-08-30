@@ -1,76 +1,162 @@
+"use client";
+
+import Image from "next/image";
+
 import type { ChatListItem } from "../hooks/useChatList";
+
+
+interface ChatListItemRowProps {
+  chat: ChatListItem;
+  onClick: () => void;
+}
+
 
 export default function ChatListItemRow({
   chat,
   onClick,
-}: {
-  chat: ChatListItem;
-  onClick: () => void;
-}) {
-  const name = chat.title ?? chat.other_display_name ?? "Tanpa nama";
+}: ChatListItemRowProps) {
+
+
+  const name =
+    chat.title ??
+    chat.partner?.display_name ??
+    "Tanpa nama";
+
+
+  const avatar =
+    chat.partner?.avatar_url ?? null;
+
+
   const preview =
-    chat.last_message_type === "text" || !chat.last_message_type
-      ? chat.last_message_content ?? "Belum ada pesan"
-      : `[${chat.last_message_type}]`;
+    chat.last_message?.content ??
+    "Belum ada pesan";
+
 
   return (
-    <div
+    <button
       onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 16px",
-        borderBottom: "1px solid #eee",
-        cursor: "pointer",
-      }}
+      className="
+        w-full
+        flex
+        items-center
+        gap-3
+        px-4
+        py-3
+        text-left
+        hover:bg-white/5
+        transition
+      "
     >
+
+      {/* Avatar */}
       <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          background: chat.other_avatar_url ? undefined : "#ccc",
-          backgroundImage: chat.other_avatar_url ? `url(${chat.other_avatar_url})` : undefined,
-          backgroundSize: "cover",
-          flexShrink: 0,
-        }}
-      />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <strong>{name}</strong>
-          {chat.other_is_online && <span style={{ color: "#2ecc71", fontSize: 12 }}>online</span>}
-        </div>
+        className="
+          relative
+          w-12
+          h-12
+          rounded-full
+          overflow-hidden
+          bg-white/10
+          flex
+          items-center
+          justify-center
+          shrink-0
+        "
+      >
+
+        {avatar ? (
+
+          <Image
+            src={avatar}
+            alt={name}
+            fill
+            className="object-cover"
+          />
+
+        ) : (
+
+          <span
+            className="
+              text-lg
+              font-semibold
+              text-white/70
+            "
+          >
+            {name.charAt(0).toUpperCase()}
+          </span>
+
+        )}
+
+      </div>
+
+
+      {/* Content */}
+      <div
+        className="
+          flex-1
+          min-w-0
+        "
+      >
+
         <div
-          style={{
-            color: "#777",
-            fontSize: 14,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
+          className="
+            flex
+            justify-between
+            items-center
+            gap-2
+          "
+        >
+
+          <h3
+            className="
+              font-medium
+              text-white
+              truncate
+            "
+          >
+            {name}
+          </h3>
+
+
+          {chat.unread > 0 && (
+
+            <span
+              className="
+                min-w-5
+                h-5
+                px-1.5
+                rounded-full
+                bg-blue-600
+                text-white
+                text-xs
+                flex
+                items-center
+                justify-center
+              "
+            >
+              {chat.unread}
+            </span>
+
+          )}
+
+        </div>
+
+
+
+        <p
+          className="
+            text-sm
+            text-gray-400
+            truncate
+            mt-1
+          "
         >
           {preview}
-        </div>
+        </p>
+
+
       </div>
-      {chat.unread_count > 0 && (
-        <div
-          style={{
-            background: "#25d366",
-            color: "#fff",
-            borderRadius: "50%",
-            minWidth: 20,
-            height: 20,
-            fontSize: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "0 4px",
-          }}
-        >
-          {chat.unread_count}
-        </div>
-      )}
-    </div>
+
+    </button>
   );
 }
